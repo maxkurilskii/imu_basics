@@ -15,12 +15,20 @@ typedef enum{
     DATA_READY
 } spi_state_t;
 
-extern volatile spi_state_t cur_spi_state;
+typedef void (*spi_rx_callback_t)(uint8_t* buf, uint8_t data_len);
 
+extern volatile spi_state_t cur_spi_state;
+extern volatile uint8_t spi_byte_read;
+
+void dma_clear_flags(void);
 void SPI1_Init(void);
-void transmit_byte_spi(uint8_t data);
-void spi_write(uint8_t reg_add, uint8_t data);
-void spi_read(uint8_t reg_add, uint8_t* result_buf, uint8_t byte_quant);
+void DMA2_Stream0_IRQHandler(void);
+void spi_write(uint8_t reg_addr, uint8_t tx_data);
+void spi_read_async(uint8_t reg_addr, uint8_t byte_quant);
+void register_spi_rx_callback(spi_rx_callback_t cb);
+
+
+
 
 #endif
 

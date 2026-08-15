@@ -4,7 +4,7 @@
 #include "common.h"
 #include "imu_ism20948.h"
 
-#define UART_TX_PERIOD_MS	200
+#define UART_TX_PERIOD_MS	100
 
 typedef struct{
 	uint8_t start_byte;
@@ -24,13 +24,11 @@ typedef enum{
 extern volatile usart3_state_t cur_usart3_state;
 
 void USART3_Init(void);
-void DMA1_Stream3_IRQHandler(void);
-void dma_clear_flags(void);
-
 void Timer10_Init(void);
 void TIM1_UP_TIM10_IRQHandler(void);
 void usart3_timer_start(void);
 void usart3_timer_stop(void);
+
 
 void transmit_byte_usart3(uint8_t data);
 void transmit_imu_meas_usart3(imu_data_t* imu_s);

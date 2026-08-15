@@ -12,7 +12,7 @@ void TIM1_UP_TIM10_IRQHandler(void){
             //transmit_byte_usart3(whoAmIValue);
             //transmit_mag_meas_usart3(mag_meas);
             //transmit_acc_gyro_meas_usart3(acc_meas, gyro_meas);
-            transmit_imu_meas_usart3(&imu_raw_meas);
+            transmit_imu_meas_usart3(&imu_meas);
             //cur_spi_state = FREE; 
         }
     }
@@ -22,7 +22,12 @@ void TIM1_UP_TIM10_IRQHandler(void){
 void transmit_byte_usart3(uint8_t data){
     cur_usart3_state = USART3_TRANSMITING;
     DMA1_Stream3->CR &= ~DMA_SxCR_EN;
-    dma_clear_flags();
+    DMA1->LIFCR =
+        DMA_LIFCR_CTCIF3 |
+        DMA_LIFCR_CHTIF3 |
+        DMA_LIFCR_CTEIF3 |
+        DMA_LIFCR_CDMEIF3 |
+        DMA_LIFCR_CFEIF3;
     DMA1_Stream3->NDTR = 1;
     tx_buffer[0] = data;
     //Start transmitting
@@ -38,8 +43,8 @@ void transmit_byte_usart3_debug(uint8_t data){
 
 void transmit_imu_meas_usart3(imu_data_t* imu_s){
         DMA1_Stream3->CR &= ~DMA_SxCR_EN;
-        dma_clear_flags();
         DMA1_Stream3->NDTR = 39;
+    
 		uint8_t *p_acc  = (uint8_t*)imu_s->acc_meas;
 		uint8_t *p_gyro = (uint8_t*)imu_s->gyro_meas;
         uint8_t *p_mag  = (uint8_t*)imu_s->mag_meas;
@@ -100,7 +105,7 @@ void transmit_mag_meas_usart3(float* mag_meas){
 
 void DMA1_Stream3_IRQHandler(void){
     if (DMA1->LISR & DMA_LISR_TCIF3){
-        dma_clear_flags();
+        DMA1->LIFCR |= DMA_LIFCR_CTCIF3;
         DMA1_Stream3->CR &= ~DMA_SxCR_EN;
         cur_usart3_state = USART3_FREE;
     }
@@ -138,11 +143,11 @@ void USART3_Init(void){
 	//Baud rate = 115200 + oversampling = 16(over8 = 0)
 	//54000000/(16 * 115200) = 29.29687 -> matisa = 29; frac = 0.29 * 16 = 4.75 = 5
     //USART3->BRR = 54000000UL / 115200UL;
-    //USART3->BRR =(29U << USART_BRR_DIV_MANTISSA_Pos) | (5U << USART_BRR_DIV_FRACTION_Pos);
+    USART3->BRR =(29U << USART_BRR_DIV_MANTISSA_Pos) | (5U << USART_BRR_DIV_FRACTION_Pos);
    
     //Baud rate = 921600 + oversampling = 16(over8 = 0)
 	//54000000/(16 * 921600) = 3.66 -> matisa = 3; frac = 0.66 * 16 ~ 11    
-    USART3->BRR = (3U << USART_BRR_DIV_MANTISSA_Pos) | (11U << USART_BRR_DIV_FRACTION_Pos);
+    //USART3->BRR = (3U << USART_BRR_DIV_MANTISSA_Pos) | (11U << USART_BRR_DIV_FRACTION_Pos);
 	
     //Word len = 8bit (M1=M2=0)+enable UART3+enable UART3 transmit and receive 
 	USART3->CR1 |= USART_CR1_UE | USART_CR1_TE;// | USART_CR1_RE;
@@ -196,11 +201,4 @@ void usart3_timer_stop(void){
 }
 
 
-void dma_clear_flags(void){
-    DMA1->LIFCR |= DMA_LIFCR_CFEIF3
-        | DMA_LIFCR_CDMEIF3
-        | DMA_LIFCR_CTEIF3
-        | DMA_LIFCR_CHTIF3
-        | DMA_LIFCR_CTCIF3;
-}
 

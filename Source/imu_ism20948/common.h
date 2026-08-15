@@ -5,7 +5,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-//base imu data type struct
 typedef struct{
     float	acc_meas[3];
     float	gyro_meas[3];
@@ -13,9 +12,9 @@ typedef struct{
     float   timestamp;
 }imu_data_t;
 
-
 #include "system_clock_init.h" 
 #include "led_unit.h"
+#include "uart_unit.h"
 
 void SysTick_Handler(void);
 void delay_ms(uint16_t milis);
