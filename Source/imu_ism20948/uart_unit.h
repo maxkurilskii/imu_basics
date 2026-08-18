@@ -4,7 +4,7 @@
 #include "common.h"
 #include "imu_ism20948.h"
 
-#define UART_TX_PERIOD_MS	200
+#define UART_TX_PERIOD_MS	1000
 
 typedef struct{
 	uint8_t start_byte;

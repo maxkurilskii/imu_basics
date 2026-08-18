@@ -21,6 +21,11 @@ void delay_ms(uint16_t millis){
 	}
 }
 
+void swap_imu_buffers(imu_data_t** pointer_array){
+    imu_data_t* temp = *pointer_array; 
+    *(pointer_array) = *(pointer_array+1);
+    *(pointer_array+1) = temp;
+}
 
 int main(void){
 	SysClockInit(); //make sys clock initialization
@@ -37,12 +42,14 @@ int main(void){
     
 	while(1){
         if (cur_spi_state == READING){
-            get_raw_imu_meas();
+            //get_raw_imu_meas(&imu_raw_meas);
+            get_raw_imu_meas(imu_raw_meas[WRITE_PART]);
             //get_register_value(WHO_AM_I);
+            swap_imu_buffers(imu_raw_meas); //swap read and write meas parts addresses
+            //change state 
             cur_spi_state = FREE;
-        }
+        }   
     }
-	
 }
 
 

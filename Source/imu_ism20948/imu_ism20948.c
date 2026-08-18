@@ -1,20 +1,37 @@
 #include "imu_ism20948.h"
 
-imu_data_t imu_raw_meas = {
+uint32_t tim9_counter = 0;
+
+imu_data_t imu_raw_meas_a = {
     .acc_meas = {0},
     .gyro_meas = {0},
     .mag_meas = {0},
-    .timestamp = 0
+    .timestamp_ms = 0
 };
 
+imu_data_t imu_raw_meas_b = {
+    .acc_meas = {0},
+    .gyro_meas = {0},
+    .mag_meas = {0},
+    .timestamp_ms = 0
+};
+
+imu_data_t* imu_raw_meas[2] = {&imu_raw_meas_a, &imu_raw_meas_b};
+
+//imu_data_t imu_raw_meas = {
+//    .acc_meas = {0},
+//    .gyro_meas = {0},
+//    .mag_meas = {0},
+//    .timestamp_ms = 0
+//};
 
 uint8_t whoAmIValue = 0;
 
 void TIM1_BRK_TIM9_IRQHandler(void){
     if (TIM9->SR & TIM_SR_UIF){
         TIM9->SR &= ~TIM_SR_UIF; //clear flag!?
+        tim9_counter += 1;
         if (cur_spi_state == FREE){
-            //imu_raw_meas.timestamp = msCounter;
             cur_spi_state = READING;
         }
     }
@@ -28,7 +45,7 @@ void get_register_value(uint8_t reg_addr){
 }
 
 
-void get_raw_imu_meas(void){
+void get_raw_imu_meas(imu_data_t* imu_write_part){
 	/*  
     Read ACCEL_XOUT_H_ADD(6)->GYRO_XOUT_H_ADD(6)->TEMP_OUT_H_ADD(2)->EXT_SLV_SENS_DATA_00(9) 
     Decode 23 BYTES data from spi and encode in imu_data struct:
@@ -36,16 +53,19 @@ void get_raw_imu_meas(void){
     FOR ACCEL and GYRO <MSB first>: GYRO_X_OUT_H -> GYRO_X_OUT_L.
     FOR MAGNET //LITTLE ENDIAN frm AK09916 <LSB first>: H_X_OUT_L -> H_X_OUT_H
     */
+    //timestamp
+    imu_write_part->timestamp_ms = TIM9_PERIOD_MS * tim9_counter;
+    
     uint8_t imu_resp[23] = {0};
     spi_read(ACCEL_XOUT_H_ADD, imu_resp, 23);
 	//Account accel data SENS for chosen FULL SCALE range (+/- 2g)
-	imu_raw_meas.acc_meas[0] =  (int16_t)((uint16_t)imu_resp[0]	<< 8 | imu_resp[1])	/ 16384.0f; 
-	imu_raw_meas.acc_meas[1] =  (int16_t)((uint16_t)imu_resp[2]	<< 8 | imu_resp[3])	/ 16384.0f;
-	imu_raw_meas.acc_meas[2] =  (int16_t)((uint16_t)imu_resp[4]	<< 8 | imu_resp[3])	/ 16384.0f;
+	imu_write_part->acc_meas[0] =  (int16_t)((uint16_t)imu_resp[0]	<< 8 | imu_resp[1])	/ 16384.0f; 
+	imu_write_part->acc_meas[1] =  (int16_t)((uint16_t)imu_resp[2]	<< 8 | imu_resp[3])	/ 16384.0f;
+	imu_write_part->acc_meas[2] =  (int16_t)((uint16_t)imu_resp[4]	<< 8 | imu_resp[5])	/ 16384.0f;
 	//Account gyro data SENS for chosen FULL SCALE range (+/- 500dps)
-	imu_raw_meas.gyro_meas[0] = (int16_t)((uint16_t)imu_resp[6]	    << 8 | imu_resp[7])	 / 65.5f;
-	imu_raw_meas.gyro_meas[1] = (int16_t)((uint16_t)imu_resp[8]	    << 8 | imu_resp[9])	 / 65.5f;
-	imu_raw_meas.gyro_meas[2] = (int16_t)((uint16_t)imu_resp[10]	<< 8 | imu_resp[11]) / 65.5f;
+	imu_write_part->gyro_meas[0] = (int16_t)((uint16_t)imu_resp[6]	    << 8 | imu_resp[7])	 / 65.5f;
+	imu_write_part->gyro_meas[1] = (int16_t)((uint16_t)imu_resp[8]	    << 8 | imu_resp[9])	 / 65.5f;
+	imu_write_part->gyro_meas[2] = (int16_t)((uint16_t)imu_resp[10]	<< 8 | imu_resp[11]) / 65.5f;
     
     /*MAGNET decoding*/
     float mag_ovf_resp[3] = {4912.0, 4912.0, 4912.0};
@@ -57,13 +77,13 @@ void get_raw_imu_meas(void){
     //check for magne field overflow (data are incorrect)
     if (mag_sr2 & (1U << MAG_ST2_HOFL_Pos)){
         toggle_led(LED3);
-        memcpy(imu_raw_meas.mag_meas, mag_ovf_resp, 12);
+        memcpy(imu_write_part->mag_meas, mag_ovf_resp, 12);
         return;
     }
-    imu_raw_meas.mag_meas[0] = (int16_t)((uint16_t)imu_resp[16]  << 8  | imu_resp[15]) * 0.15; 
-    imu_raw_meas.mag_meas[1] = (int16_t)((uint16_t)imu_resp[18]  << 8  | imu_resp[17]) * 0.15; 
-    imu_raw_meas.mag_meas[2] = (int16_t)((uint16_t)imu_resp[20]  << 8  | imu_resp[19]) * 0.15; 
-
+    imu_write_part->mag_meas[0] = (int16_t)((uint16_t)imu_resp[16]  << 8  | imu_resp[15]) * 0.15; 
+    imu_write_part->mag_meas[1] = (int16_t)((uint16_t)imu_resp[18]  << 8  | imu_resp[17]) * 0.15; 
+    imu_write_part->mag_meas[2] = (int16_t)((uint16_t)imu_resp[20]  << 8  | imu_resp[19]) * 0.15; 
+      
 }
 
 
@@ -278,8 +298,8 @@ void Timer9_Init(void){
     //Enable tim9(16bit timer) clock from APB2 (108 MHz)
     RCC->APB2ENR |= RCC_APB2ENR_TIM9EN;
     
-    //Prescaler = 107: 108 Mhz / (53 + 1) = 1 Mhz (1us per tick)
-    TIM9->PSC = 53; 
+    //Prescaler = 107: 108 Mhz / (107 + 1) = 1 Mhz (1us per tick)
+    TIM9->PSC = 107; 
     
     //ARR is TIM9_PERIOD_MS / Tcnt_tick = TIM9_PERIOD_MS * Fcnt_tick
     uint16_t arr_val = TIM9_PERIOD_MS * 1000 - 1;
@@ -312,5 +332,3 @@ void imu_timer_stop(void){
     TIM9->SR &= ~TIM_SR_UIF; //???
     TIM9->CNT = 0;
 }
-
-

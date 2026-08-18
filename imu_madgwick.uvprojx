@@ -509,14 +509,19 @@
               <FilePath>.\Source\imu_ism20948\uart_unit.h</FilePath>
             </File>
             <File>
-              <FileName>imu_ism20948.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\imu_ism20948.h</FilePath>
-            </File>
-            <File>
               <FileName>spi_com.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Source\imu_ism20948\spi_com.h</FilePath>
+            </File>
+            <File>
+              <FileName>imu_data_types.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\imu_ism20948\imu_data_types.h</FilePath>
+            </File>
+            <File>
+              <FileName>imu_ism20948.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\imu_ism20948\imu_ism20948.h</FilePath>
             </File>
           </Files>
         </Group>

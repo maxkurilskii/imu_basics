@@ -12,8 +12,7 @@ void TIM1_UP_TIM10_IRQHandler(void){
             //transmit_byte_usart3(whoAmIValue);
             //transmit_mag_meas_usart3(mag_meas);
             //transmit_acc_gyro_meas_usart3(acc_meas, gyro_meas);
-            transmit_imu_meas_usart3(&imu_raw_meas);
-            //cur_spi_state = FREE; 
+            transmit_imu_meas_usart3(imu_raw_meas[READ_PART]);
         }
     }
 
@@ -39,20 +38,23 @@ void transmit_byte_usart3_debug(uint8_t data){
 void transmit_imu_meas_usart3(imu_data_t* imu_s){
         DMA1_Stream3->CR &= ~DMA_SxCR_EN;
         dma_clear_flags();
-        DMA1_Stream3->NDTR = 39;
+        DMA1_Stream3->NDTR = 43;
 		uint8_t *p_acc  = (uint8_t*)imu_s->acc_meas;
 		uint8_t *p_gyro = (uint8_t*)imu_s->gyro_meas;
         uint8_t *p_mag  = (uint8_t*)imu_s->mag_meas;
+        uint8_t *p_time = (uint8_t*)&(imu_s->timestamp_ms);
 	
 		tx_buffer[0] = 0x23; //start byte
 		tx_buffer[1] = 0x42; //imu cmd code
-		tx_buffer[2] = 0x24; //length of data =  36 bytes(ac+gyro+mag) // + 4 or 2 bytes (timestmp)
+		tx_buffer[2] = 0x28; //length of data =  36 bytes(ac+gyro+mag) + 4 timestmp
         //fill tx_buffer with measuremnets: 3-14(12 bytes) - accel
 		for(uint8_t i = 0; i < 12; i++){
-			tx_buffer[3+i] = *(p_acc + i);
-            tx_buffer[15+i] = *(p_gyro + i);
+			tx_buffer[3+i]   = *(p_acc + i);
+            tx_buffer[15+i]  = *(p_gyro + i);
             tx_buffer[27+i] = *(p_mag + i);
 		}
+        for(uint8_t i = 0; i < 4; i++) 
+            tx_buffer[39+i] = *(p_time + i);
         
         //Start transmitting
         DMA1_Stream3->CR |= DMA_SxCR_EN;
@@ -95,7 +97,7 @@ void transmit_mag_meas_usart3(float* mag_meas){
 			transmit_byte_usart3(tx_buffer[i]);
 		}
 		
-}
+} 
 
 
 void DMA1_Stream3_IRQHandler(void){
@@ -138,11 +140,11 @@ void USART3_Init(void){
 	//Baud rate = 115200 + oversampling = 16(over8 = 0)
 	//54000000/(16 * 115200) = 29.29687 -> matisa = 29; frac = 0.29 * 16 = 4.75 = 5
     //USART3->BRR = 54000000UL / 115200UL;
-    //USART3->BRR =(29U << USART_BRR_DIV_MANTISSA_Pos) | (5U << USART_BRR_DIV_FRACTION_Pos);
+    USART3->BRR =(29U << USART_BRR_DIV_MANTISSA_Pos) | (5U << USART_BRR_DIV_FRACTION_Pos);
    
     //Baud rate = 921600 + oversampling = 16(over8 = 0)
 	//54000000/(16 * 921600) = 3.66 -> matisa = 3; frac = 0.66 * 16 ~ 11    
-    USART3->BRR = (3U << USART_BRR_DIV_MANTISSA_Pos) | (11U << USART_BRR_DIV_FRACTION_Pos);
+    //USART3->BRR = (3U << USART_BRR_DIV_MANTISSA_Pos) | (11U << USART_BRR_DIV_FRACTION_Pos);
 	
     //Word len = 8bit (M1=M2=0)+enable UART3+enable UART3 transmit and receive 
 	USART3->CR1 |= USART_CR1_UE | USART_CR1_TE;// | USART_CR1_RE;

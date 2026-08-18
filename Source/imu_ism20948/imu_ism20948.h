@@ -94,14 +94,14 @@
 
 
 /* */
-#define TIM9_PERIOD_MS          1
+#define TIM9_PERIOD_MS      5
+#define WRITE_PART          0
+#define READ_PART           1
 
 //accel, gyro  and mag raw measurements for 3 axis 
-
-
 extern  uint8_t whoAmIValue;
-extern imu_data_t imu_raw_meas;
-
+//extern imu_data_t imu_raw_meas;
+extern imu_data_t* imu_raw_meas[2];
 
 uint8_t test_imu_startup(void);
 void powerup_imu(void);
@@ -116,9 +116,8 @@ void imu_timer_start(void);
 void imu_timer_stop(void);
 
 void get_register_value(uint8_t reg_addr);
-void get_raw_imu_meas(void);
+void get_raw_imu_meas(imu_data_t* imu_write_part);
 void get_raw_accel_gyro_meas(void);
 void get_raw_magnet_meas(void);
 
 #endif
-
