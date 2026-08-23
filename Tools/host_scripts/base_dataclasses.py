@@ -1,0 +1,35 @@
+from enum import Enum
+from dataclasses import dataclass, field
+
+
+
+@dataclass(frozen=True)
+class ReadIMU:
+    #start(1) + cmd(1) + len(1) + data(40) + crc(2)   
+    cmd_code: int = 66 #b'\x42'
+    data_len: int = 40 #b'\x28'
+    
+@dataclass(frozen=True)
+class ReadACC_GYRO:
+    cmd_code: int = 66 #b'\x42'
+    data_len: int = 24  #b'\x18'
+
+@dataclass(frozen=True)
+class ReadGYRO:
+    cmd_code: int = 66 #b'\x42'
+    data_len: int = 4 #b'\x04' 
+
+@dataclass(frozen=True)
+class ReadMAG:
+    cmd_code: int = 66 #b'\x42'
+    data_len: int = 12  #b'\x0C'
+
+@dataclass(frozen=True)
+class ReadADC:
+    cmd_code: int = 65 #b'\x41'
+    data_len: bytes =  b'\x02' #2
+    
+@dataclass(frozen=True)
+class ReadTEMP:
+    cmd_code: bytes = b'\x43' #66
+    data_len: bytes =  b'\x04' #4

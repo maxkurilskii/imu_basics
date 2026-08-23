@@ -483,6 +483,11 @@
               <FileType>1</FileType>
               <FilePath>.\Source\imu_ism20948\imu_ism20948.c</FilePath>
             </File>
+            <File>
+              <FileName>crc16.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\imu_ism20948\crc16.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -522,6 +527,11 @@
               <FileName>imu_ism20948.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Source\imu_ism20948\imu_ism20948.h</FilePath>
+            </File>
+            <File>
+              <FileName>crc16.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\imu_ism20948\crc16.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -570,5 +580,14 @@
       </file>
     </files>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>imu_madgwick</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>

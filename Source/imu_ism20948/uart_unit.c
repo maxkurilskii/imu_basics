@@ -38,7 +38,8 @@ void transmit_byte_usart3_debug(uint8_t data){
 void transmit_imu_meas_usart3(imu_data_t* imu_s){
         DMA1_Stream3->CR &= ~DMA_SxCR_EN;
         dma_clear_flags();
-        DMA1_Stream3->NDTR = 43;
+        //start(1) + cmd(1) + len(1) + data[40] + crc(2)
+        DMA1_Stream3->NDTR = 45;
 		uint8_t *p_acc  = (uint8_t*)imu_s->acc_meas;
 		uint8_t *p_gyro = (uint8_t*)imu_s->gyro_meas;
         uint8_t *p_mag  = (uint8_t*)imu_s->mag_meas;
@@ -46,16 +47,23 @@ void transmit_imu_meas_usart3(imu_data_t* imu_s){
 	
 		tx_buffer[0] = 0x23; //start byte
 		tx_buffer[1] = 0x42; //imu cmd code
-		tx_buffer[2] = 0x28; //length of data =  36 bytes(ac+gyro+mag) + 4 timestmp
-        //fill tx_buffer with measuremnets: 3-14(12 bytes) - accel
+		tx_buffer[2] = 0x28; //length of data = 40 (36 for ac+gyro+mag and 4 for timestmp)
+        //fill tx_buffer with measurements: 3-14(12 bytes) - accel
 		for(uint8_t i = 0; i < 12; i++){
 			tx_buffer[3+i]   = *(p_acc + i);
             tx_buffer[15+i]  = *(p_gyro + i);
             tx_buffer[27+i] = *(p_mag + i);
 		}
+        //timestamp
         for(uint8_t i = 0; i < 4; i++) 
             tx_buffer[39+i] = *(p_time + i);
         
+        //calc crc16 for saved 43 bytes
+        uint16_t crc16 = CRC16_Calculate((uint8_t*)tx_buffer, 43);
+        //save in big endian
+        tx_buffer[43] = (uint8_t)((crc16 >> 8) & 0xFF) ; //high
+        tx_buffer[44] = (uint8_t)(crc16 & 0xFF); //low 
+
         //Start transmitting
         DMA1_Stream3->CR |= DMA_SxCR_EN;
 }

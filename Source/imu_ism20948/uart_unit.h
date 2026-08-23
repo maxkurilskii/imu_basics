@@ -3,8 +3,9 @@
 
 #include "common.h"
 #include "imu_ism20948.h"
+#include "crc16.h"
 
-#define UART_TX_PERIOD_MS	1000
+#define UART_TX_PERIOD_MS	20
 
 typedef struct{
 	uint8_t start_byte;
