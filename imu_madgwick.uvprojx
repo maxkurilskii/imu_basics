@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath></IncludePath>
+              <IncludePath>.\Source\app;.\Source\uart;.\Source\imu_ism20948</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -382,101 +382,72 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>Source Group 1</GroupName>
-          <GroupOption>
-            <CommonProperty>
-              <UseCPPCompiler>0</UseCPPCompiler>
-              <RVCTCodeConst>0</RVCTCodeConst>
-              <RVCTZI>0</RVCTZI>
-              <RVCTOtherData>0</RVCTOtherData>
-              <ModuleSelection>0</ModuleSelection>
-              <IncludeInBuild>2</IncludeInBuild>
-              <AlwaysBuild>2</AlwaysBuild>
-              <GenerateAssemblyFile>2</GenerateAssemblyFile>
-              <AssembleAssemblyFile>2</AssembleAssemblyFile>
-              <PublicsOnly>2</PublicsOnly>
-              <StopOnExitCode>11</StopOnExitCode>
-              <CustomArgument></CustomArgument>
-              <IncludeLibraryModules></IncludeLibraryModules>
-              <ComprImg>1</ComprImg>
-            </CommonProperty>
-            <GroupArmAds>
-              <Cads>
-                <interw>2</interw>
-                <Optim>0</Optim>
-                <oTime>2</oTime>
-                <SplitLS>2</SplitLS>
-                <OneElfS>2</OneElfS>
-                <Strict>2</Strict>
-                <EnumInt>2</EnumInt>
-                <PlainCh>2</PlainCh>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <wLevel>3</wLevel>
-                <uThumb>2</uThumb>
-                <uSurpInc>2</uSurpInc>
-                <uC99>2</uC99>
-                <uGnu>2</uGnu>
-                <useXO>2</useXO>
-                <v6Lang>3</v6Lang>
-                <v6LangP>0</v6LangP>
-                <vShortEn>2</vShortEn>
-                <vShortWch>2</vShortWch>
-                <v6Lto>2</v6Lto>
-                <v6WtE>2</v6WtE>
-                <v6Rtti>2</v6Rtti>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Cads>
-              <Aads>
-                <interw>2</interw>
-                <Ropi>2</Ropi>
-                <Rwpi>2</Rwpi>
-                <thumb>2</thumb>
-                <SplitLS>2</SplitLS>
-                <SwStkChk>2</SwStkChk>
-                <NoWarn>2</NoWarn>
-                <uSurpInc>2</uSurpInc>
-                <useXO>2</useXO>
-                <ClangAsOpt>0</ClangAsOpt>
-                <VariousControls>
-                  <MiscControls></MiscControls>
-                  <Define></Define>
-                  <Undefine></Undefine>
-                  <IncludePath></IncludePath>
-                </VariousControls>
-              </Aads>
-            </GroupArmAds>
-          </GroupOption>
+          <GroupName>App</GroupName>
           <Files>
             <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>system_clock_init.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\system_clock_init.c</FilePath>
+              <FileName>common.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\common.h</FilePath>
             </File>
             <File>
               <FileName>led_unit.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\led_unit.c</FilePath>
+              <FilePath>.\Source\app\led_unit.c</FilePath>
+            </File>
+            <File>
+              <FileName>led_unit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\led_unit.h</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>system_clock_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\system_clock_init.c</FilePath>
+            </File>
+            <File>
+              <FileName>system_clock_init.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\system_clock_init.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Uart</GroupName>
+          <Files>
+            <File>
+              <FileName>crc16.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\uart\crc16.c</FilePath>
+            </File>
+            <File>
+              <FileName>crc16.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\uart\crc16.h</FilePath>
             </File>
             <File>
               <FileName>uart_unit.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\uart_unit.c</FilePath>
+              <FilePath>.\Source\uart\uart_unit.c</FilePath>
             </File>
             <File>
-              <FileName>spi_com.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\spi_com.c</FilePath>
+              <FileName>uart_unit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\uart\uart_unit.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>IMU_ISM20948</GroupName>
+          <Files>
+            <File>
+              <FileName>imu_data_types.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\imu_ism20948\imu_data_types.h</FilePath>
             </File>
             <File>
               <FileName>imu_ism20948.c</FileName>
@@ -484,34 +455,14 @@
               <FilePath>.\Source\imu_ism20948\imu_ism20948.c</FilePath>
             </File>
             <File>
-              <FileName>crc16.c</FileName>
+              <FileName>imu_ism20948.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\imu_ism20948\imu_ism20948.h</FilePath>
+            </File>
+            <File>
+              <FileName>spi_com.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\crc16.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
-          <GroupName>Include</GroupName>
-          <Files>
-            <File>
-              <FileName>common.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\common.h</FilePath>
-            </File>
-            <File>
-              <FileName>system_clock_init.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\system_clock_init.h</FilePath>
-            </File>
-            <File>
-              <FileName>led_unit.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\led_unit.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart_unit.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\uart_unit.h</FilePath>
+              <FilePath>.\Source\imu_ism20948\spi_com.c</FilePath>
             </File>
             <File>
               <FileName>spi_com.h</FileName>
@@ -519,19 +470,9 @@
               <FilePath>.\Source\imu_ism20948\spi_com.h</FilePath>
             </File>
             <File>
-              <FileName>imu_data_types.h</FileName>
+              <FileName>calibration_params.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\imu_data_types.h</FilePath>
-            </File>
-            <File>
-              <FileName>imu_ism20948.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\imu_ism20948.h</FilePath>
-            </File>
-            <File>
-              <FileName>crc16.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\crc16.h</FilePath>
+              <FilePath>.\Source\imu_ism20948\calibration_params.h</FilePath>
             </File>
           </Files>
         </Group>
