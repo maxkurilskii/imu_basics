@@ -83,12 +83,15 @@
 
 
 
-# -------------------------- Python .gitignore ----------------------------
+# --------- HOST code (python scipts and C programs) .gitignore -----------
 # -------------------------------------------------------------------------
 # -------------------------------------------------------------------------
+#Ignore .venv and .vscode
+/Tools/host_scripts/.venv/*
+Tools/driver_test_code/.vscode/
 
 # Log data folder
-/Tools/host_scripts/log_data/*
+/Tools/host_scripts/log_data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
