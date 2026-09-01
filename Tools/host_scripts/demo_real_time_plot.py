@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt  
 from matplotlib import axis , figure 
 from stm32_uart_comm import UartCom
-from base_dataclasses import ReadImuRawResponce
+from base_dataclasses import ReadImuScaledMeasResponce
 from plot_offline import Sensor
 plt.rcParams["font.size"] = 10
 plt.rcParams["axes.grid"] = True
@@ -126,10 +126,10 @@ def main():
         while(com_master._my_serial.is_open):
         # while(meas_cnt < TOTAL_MEAS_CNT):
             now = time.monotonic() 
-            resp: Optional[ReadImuRawResponce] = com_master.uart_read_imu_raw_data() #blocking!!!
+            resp: Optional[ReadImuScaledMeasResponce] = com_master.uart_read_imu_scaled_data() #blocking!!!
             if resp is not None: 
                 if  sensor == Sensor.ACCEL:  
-                    meas_buffer.append((*resp.accel_mes, resp.timestamp / 1000.0))
+                    meas_buffer.append((*resp.accel_meas, resp.timestamp / 1000.0))
                 elif  sensor == Sensor.GYRO: 
                     meas_buffer.append((*resp.gyro_meas, resp.timestamp / 1000.0))
                 elif  sensor == Sensor.MAG: 

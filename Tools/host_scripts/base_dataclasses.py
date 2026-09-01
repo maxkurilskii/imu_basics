@@ -1,14 +1,20 @@
 from enum import Enum
 from dataclasses import dataclass, field
-
-
+from typing import List, Union, Optional, Tuple
 
 @dataclass(frozen=True)
-class ReadIMU:
+class ReadImuScaledMeasCommand:
     #start(1) + cmd(1) + len(1) + data(40) + crc(2)   
     cmd_code: int = 66 #b'\x42'
     data_len: int = 40 #b'\x28'
     
+@dataclass(frozen=True)
+class ReadImuScaledMeasResponce:    
+    accel_meas: Tuple[float, float, float]
+    gyro_meas: Tuple[float, float, float]
+    mag_meas:  Tuple[float, float, float]
+    timestamp: int
+
 @dataclass(frozen=True)
 class ReadACC_GYRO:
     cmd_code: int = 66 #b'\x42'

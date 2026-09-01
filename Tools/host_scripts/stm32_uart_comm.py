@@ -4,19 +4,20 @@ import time
 from enum import Enum
 
 from typing import List, Dict, Tuple, Optional, Union
-from base_dataclasses import ReadIMU, ReadACC_GYRO, ReadMAG #, ReadADC, ReadTEMP
+from base_dataclasses import  ReadImuScaledMeasCommand, ReadImuScaledMeasResponce #ReadACC_GYRO, ReadMAG #, ReadADC, ReadTEMP
 from imu_csv_logger import ImuLogger
 from crc16 import calculate_crc16
 
 
 class CommandID(Enum):
-    READ_IMU = 1
+    READ_IMU_SCALED_MEAS = 1
     READ_ACC_GYRO = 2
     READ_MAG = 3
     
-control_commands = {CommandID.READ_IMU: ReadIMU(), 
-                    CommandID.READ_ACC_GYRO: ReadACC_GYRO(),
-                    CommandID.READ_MAG: ReadMAG()} 
+control_commands = {CommandID.READ_IMU_SCALED_MEAS: ReadImuScaledMeasCommand()}
+                    # CommandID.READ_IMU_ANGLE: ReadImuAngleCommand() 
+                    # CommandID.READ_ACC_GYRO: ReadACC_GYRO(),
+                    # CommandID.READ_MAG: ReadMAG()} 
 
 class ParseStates(Enum):
     WAIT_START = 0
@@ -43,7 +44,7 @@ class UartStreamParser:
         if self._current_msg_state == ParseStates.FINISHED:
             return self._msg
         return None
-    
+
     def reset_all(self):
         self._msg = bytearray() 
         self._data_len_cntr = 0
@@ -105,8 +106,8 @@ class UartStreamParser:
 
 class UartCom:
     def __init__(self, port: str, baud_rate = 115200, timeout_sec = 0.1) -> None:
-        self.my_serial  = serial.Serial(port, baud_rate, timeout=timeout_sec)
-        self.serial_parser = UartStreamParser(control_commands)
+        self._my_serial = serial.Serial(port, baud_rate, timeout=timeout_sec)
+        self._serial_parser = UartStreamParser(control_commands)
                   
     def uart_read_data(self):
         """
@@ -114,41 +115,49 @@ class UartCom:
         """
         # self.serial_parser.set_control_cmd(1) DON NOT FORGET!
         while(True):
-            raw_byte: bytes = self.my_serial.read(size=1)
+            raw_byte: bytes = self._my_serial.read(size=1)
             # print("INPUT BYTE: ", raw_byte[0])
             if not raw_byte:
                 continue 
-            self.serial_parser.process_byte(raw_byte)
+            self._serial_parser.process_byte(raw_byte)
+            
    
-    def uart_read_imu_data(self) -> Optional[bytearray]:
+    def uart_read_imu_scaled_data(self) -> Optional[ReadImuScaledMeasResponce]:
         """
         Reading is done byte by byte.
-        Parsing the performed by MsgParser object until it gets last byte of payload.
+        Byte check-collect is performed by MsgParser object until it gets last byte of payload.
         Blocking method!
         Returns None or bytearray o mesaurements data
         with length according to ReadIMU byte_data attribute (40 bytes)
         """        
-        self.serial_parser.set_control_cmd(CommandID.READ_IMU)
-        while(not self.serial_parser.is_done()):
-            raw_byte: bytes = self.my_serial.read(size=1)
+        self._serial_parser.set_control_cmd(CommandID.READ_IMU_SCALED_MEAS)
+        while(not self._serial_parser.is_done()):
+            raw_byte: bytes = self._my_serial.read(size=1)
             if not raw_byte:  continue 
-            self.serial_parser.process_byte(raw_byte)  
-        msg = self.serial_parser.get_message()
-        if msg is None: return None
-        return msg[3:-2] #return only data part (payload)
-        
+            self._serial_parser.process_byte(raw_byte)  
+        msg = self._serial_parser.get_message()
+        if msg is None: 
+            return None
+        acc  = struct.unpack('<3f', msg[3:15])    # accel in float (12 bytes)
+        gyro = struct.unpack('<3f', msg[15:27])   # gyro in float (12 bytes)
+        mag  = struct.unpack('<3f', msg[27:39])   # magnet in float (12 bytes)
+        time = struct.unpack('<I',  msg[39:43])[0] # meas timestamp in uint32_t (4 bytes)
+        return ReadImuScaledMeasResponce(acc, gyro, mag, time)
 
 def main():
     try:
         imu_csv_logger = ImuLogger()
         com_master = UartCom("COM4", timeout_sec=0.05)
-        meas_cnt = 100
-        # while(com_master.my_serial.is_open):
-        while(meas_cnt):
-            payload = com_master.uart_read_imu_data() #blocking!!!
-            if payload is not None: 
-                imu_csv_logger.save_data(payload)
-                meas_cnt -= 1
+        a = com_master._my_serial.read(1)
+        # meas_cnt = 100
+        while(com_master._my_serial.is_open):
+        # while(meas_cnt):
+            data = com_master.uart_read_imu_scaled_data() #blocking!!!   
+            # data = com_master.uart_read_imu_angle_data() #blocking!!!
+            if data is not None: 
+                imu_csv_logger.save_scaled_data(data)
+                # imu_csv_logger.save_angle_data(data)
+                # meas_cnt -= 1
     except serial.SerialException:
         print("Serial connection lost. Data saved")
     except KeyboardInterrupt:

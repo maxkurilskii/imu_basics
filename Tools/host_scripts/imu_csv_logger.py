@@ -5,6 +5,7 @@ import csv
 from pathlib import Path
 from enum import Enum
 from typing import List, Dict, Tuple, Optional, Union
+from base_dataclasses import ReadImuScaledMeasResponce
 
 
 class ImuLogger:
@@ -14,20 +15,15 @@ class ImuLogger:
         self.max_buf_size = 100
         self.data_buffer: list = []
     
-    def save_data(self, data: bytearray) -> None:
-        # unpack 40 bytes: acc(x,y,z) -> gyro(x,y,z) -> mag(x,y,z) -> time_ms; lit endian(LSB first) 
-        acc  = struct.unpack('<3f', data[0:12])    # accel in float (12 bytes)
-        gyro = struct.unpack('<3f', data[12:24])   # gyro in float (12 bytes)
-        mag  = struct.unpack('<3f', data[24:36])   # magnet in float (12 bytes)
-        time = struct.unpack('<I', data[36:40])[0] # meas timestamp in uint32_t (4 bytes)
-        # print(f"Accel X:{acc[0]:>9.3f} Y:{acc[1]:>9.3f} Z:{acc[2]:>9.3f}", end='')
-        # print(f"|| Gyro X:{gyro[0]:>9.3f} Y:{gyro[1]:>9.3f} Z:{gyro[2]:>9.3f}", end='')
-        # print(f"|| Mag X:{mag[0]:>9.3f} Y:{mag[1]:>9.3f} Z:{mag[2]:>9.3f}")
-        # print(f"|| Timestamp: {time} ms")
-        record = [f"{time:>9}", 
-                    *[f"{data:>9.3f}" for data in acc],
-                    *[f"{data:>9.3f}" for data in gyro],
-                    *[f"{data:>9.3f}" for data in mag]]
+    def save_scaled_data(self, data: ReadImuScaledMeasResponce) -> None:
+        record = [f"{data.timestamp:>9}", 
+                    *[f"{data:>9.3f}" for data in data.accel_meas],
+                    *[f"{data:>9.3f}" for data in data.gyro_meas],
+                    *[f"{data:>9.3f}" for data in data.mag_meas]]
+        
+        # only for mag calib:
+        # record = [*[f"{data:.3f}" for data in data.mag_meas]]
+
         self.data_buffer.append(record)
         
         if len(self.data_buffer) >= self.max_buf_size:
@@ -45,6 +41,7 @@ class ImuLogger:
                         "A_X", "A_Y", "A_Z", 
                         "G_X", "G_Y", "G_Z", 
                         "M_X", "M_Y", "M_Z"]
+        # header = ["time_ms",'roll', 'pitch',  'yaw']
         header_formatted = [f"{data:>9}" for data in header]
         with open(fname, mode = 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
@@ -59,7 +56,17 @@ class ImuLogger:
     
         
 if __name__ == "__main__":
-    pass
+    filename1 = Path("log_data")/"imu_log_2026-08-28_02-33-36_mag_only.csv"
+    filename2 = Path("log_data")/"imu_log_2026-08-28_02-33-36_mag_mdf.csv"
+    with open(filename1) as f_read, open(filename2, mode='w', newline='') as f_write:
+        reader = csv.reader(f_read)
+        writer = csv.writer(f_write, delimiter='\t',quotechar=' ')
+        for rec in reader:
+            # new_rec = ['(' + ','.join([data for data in rec]) + ')']
+            new_rec = [data for data in rec]
+            writer.writerow(new_rec)
+            
+    
     #print(dt.datetime.today().strftime("%d:%m:%Y %H:%M:%S"))
 
 
