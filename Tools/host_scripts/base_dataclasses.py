@@ -3,6 +3,19 @@ from dataclasses import dataclass, field
 from typing import List, Union, Optional, Tuple
 
 @dataclass(frozen=True)
+class ReadImuEulerCommand:
+    #start(1) + cmd(1) + len(1) + data(40) + crc(2)   
+    cmd_code: int = 66 #b'\x42'
+    data_len: int = 16 #b'\x10'
+
+@dataclass(frozen=True)
+class ReadImuEulerResponce:    
+    roll: float
+    pitch: float
+    yaw:  float
+    timestamp: int
+
+@dataclass(frozen=True)
 class ReadImuScaledMeasCommand:
     #start(1) + cmd(1) + len(1) + data(40) + crc(2)   
     cmd_code: int = 66 #b'\x42'

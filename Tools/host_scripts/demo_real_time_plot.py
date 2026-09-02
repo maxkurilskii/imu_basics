@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt  
 from matplotlib import axis , figure 
 from stm32_uart_comm import UartCom
-from base_dataclasses import ReadImuScaledMeasResponce
+from base_dataclasses import ReadImuScaledMeasResponce, ReadImuEulerResponce
 from plot_offline import Sensor
 plt.rcParams["font.size"] = 10
 plt.rcParams["axes.grid"] = True
@@ -54,7 +54,7 @@ def plot_figure(): #deepseek (test)
     
     
 
-class RealTimePlotter:
+class RealTimeSensorPlotter:
     sensors = {Sensor.ACCEL: ["ACC_X", "ACC_Y", "ACC_Z"],
                Sensor.GYRO: ["Gyro_X", "Gyro_Y", "Gyro_Z"],
                Sensor.MAG: ["MAG_X", "MAG_Y", "MAG_Z"]}
@@ -62,7 +62,7 @@ class RealTimePlotter:
     def __init__(self, window_size, sensor, figure_size = (12, 6)) -> None:
         # number of meas along x axis of any plot
         self._window_size = window_size
-        if sensor not in RealTimePlotter.sensors:     
+        if sensor not in RealTimeSensorPlotter.sensors:     
             raise KeyError(f"No such sensor: {sensor}, should be Sensors type")
         
         plt.ion() #interactivre mode is on
@@ -71,7 +71,7 @@ class RealTimePlotter:
                                                 figsize=figure_size, layout='tight')
 
         self._subplot_objects = {}
-        for name, ax in zip(RealTimePlotter.sensors[sensor], axes):
+        for name, ax in zip(RealTimeSensorPlotter.sensors[sensor], axes):
             # line objects that will be auto-updated by new data in subplot
             line_object, = ax.plot([], [], 'b-', linewidth=2)
             # ax config
@@ -81,7 +81,8 @@ class RealTimePlotter:
             ax.grid(True, alpha=0.3)
             # save ax and line objects in dict format for convenience
             self._subplot_objects[name] = (ax, line_object)
-    
+        
+        
     def plot_data(self, gyro_arr: np.ndarray):  
         # start = time.perf_counter()
         for ind, (ax, line) in enumerate(self._subplot_objects.values()):
@@ -101,7 +102,45 @@ class RealTimePlotter:
         plt.pause(0.01) #the same as fraw_idle() + flush_events()
         
         # print(f"[IN] Plotting takes: {time.perf_counter() - start + time_cnt:.3f} sec") 
-         
+
+
+
+class RealTimeEulerPlotter:
+    def __init__(self, window_size, sensor, figure_size = (12, 6)) -> None:
+            # number of meas along x axis of any plot
+            self._window_size = window_size
+            if sensor not in RealTimeSensorPlotter.sensors:     
+                raise KeyError(f"No such sensor: {sensor}, should be Sensors type")
+            
+            plt.ion() #interactivre mode is on
+            
+            self._figure, axes = plt.subplots(3, 1, squeeze= True, sharex = True, 
+                                                    figsize=figure_size, layout='tight')
+    
+            self._subplot_objects = {}
+            for name, ax in zip(['Roll', 'Pitch', 'Yaw'], axes):
+                # line objects that will be auto-updated by new data in subplot
+                line_object, = ax.plot([], [], 'b-', linewidth=2)
+                # ax config
+                ax.set_xlabel('Time, s')
+                ax.set_ylabel(name)
+                ax.set_ylim(-1.5, 1.5)
+                ax.grid(True, alpha=0.3)
+                # save ax and line objects in dict format for convenience
+                self._subplot_objects[name] = (ax, line_object)
+       
+    
+    def plot_angle_data(self, angle_buf: np.ndarray):  
+        for ind, (ax, line) in enumerate(self._subplot_objects.values()):
+            line.set_data(angle_buf[:, 3], angle_buf[:, ind])
+            ax.set_xlim(angle_buf[0, 3], angle_buf[0, 3] + self._window_size)
+            ax.relim() 
+            ax.autoscale(axis="y", tight = True)
+        plt.pause(0.01)
+        
+        
+
+               
 def main():
     try:
         # stm pubs data wit hUART_TX_PERIOD period 
@@ -121,19 +160,32 @@ def main():
         com_master = UartCom("COM4", timeout_sec=0.01)
         sensor = Sensor.ACCEL
         FIGURE_SIZE  = (8, 6)
-        plotter = RealTimePlotter(PLT_WINDOW_SIZE, sensor, FIGURE_SIZE)
-                                
+        # sensor_plotter = RealTimeSensorPlotter(PLT_WINDOW_SIZE, sensor, FIGURE_SIZE)
+        euler_plotter = RealTimeEulerPlotter(PLT_WINDOW_SIZE, sensor, FIGURE_SIZE)
+
         while(com_master._my_serial.is_open):
-        # while(meas_cnt < TOTAL_MEAS_CNT):
             now = time.monotonic() 
-            resp: Optional[ReadImuScaledMeasResponce] = com_master.uart_read_imu_scaled_data() #blocking!!!
+            resp: Optional[ReadImuEulerResponce] = com_master.uart_read_imu_euler_data() #blocking!!!
             if resp is not None: 
-                if  sensor == Sensor.ACCEL:  
-                    meas_buffer.append((*resp.accel_meas, resp.timestamp / 1000.0))
-                elif  sensor == Sensor.GYRO: 
-                    meas_buffer.append((*resp.gyro_meas, resp.timestamp / 1000.0))
-                elif  sensor == Sensor.MAG: 
-                    meas_buffer.append((*resp.mag_meas,  resp.timestamp / 1000.0))
+                meas_buffer.append((resp.roll, resp.pitch, resp.yaw, resp.timestamp / 1000.0))
+            if now - last_upd >= PLT_TIMER_PERIOD and meas_buffer:
+                start = time.perf_counter()     
+                # create gyro numpy data base on meas_cnt records (copy again!)        
+                euler_plotter.plot_angle_data(np.array(meas_buffer))
+                print(f"[OUT] Plotting takes: {time.perf_counter() - start:.3f} sec")
+                last_upd = now          
+                              
+        # while(com_master._my_serial.is_open):
+        # # while(meas_cnt < TOTAL_MEAS_CNT):
+        #     now = time.monotonic() 
+        #     resp: Optional[ReadImuScaledMeasResponce] = com_master.uart_read_imu_scaled_data() #blocking!!!
+        #     if resp is not None: 
+        #         if  sensor == Sensor.ACCEL:  
+        #             meas_buffer.append((*resp.accel_meas, resp.timestamp / 1000.0))
+        #         elif  sensor == Sensor.GYRO: 
+        #             meas_buffer.append((*resp.gyro_meas, resp.timestamp / 1000.0))
+        #         elif  sensor == Sensor.MAG: 
+        #             meas_buffer.append((*resp.mag_meas,  resp.timestamp / 1000.0))
 
             if now - last_upd >= PLT_TIMER_PERIOD and meas_buffer:
                 start = time.perf_counter()     

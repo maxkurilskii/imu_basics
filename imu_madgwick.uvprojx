@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\Source\app;.\Source\uart;.\Source\imu_ism20948</IncludePath>
+              <IncludePath>.\Source\app;.\Source\uart;.\Source\imu_ism20948;.\Source\Fusion</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -414,6 +414,16 @@
               <FileType>5</FileType>
               <FilePath>.\Source\app\system_clock_init.h</FilePath>
             </File>
+            <File>
+              <FileName>filter_proces.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\filter_proces.c</FilePath>
+            </File>
+            <File>
+              <FileName>filter_proces.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\filter_proces.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -473,6 +483,66 @@
               <FileName>calibration_params.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Source\imu_ism20948\calibration_params.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Fusion</GroupName>
+          <Files>
+            <File>
+              <FileName>Fusion.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\Fusion.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionAhrs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\Fusion\FusionAhrs.c</FilePath>
+            </File>
+            <File>
+              <FileName>FusionAhrs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionAhrs.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionBias.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\Fusion\FusionBias.c</FilePath>
+            </File>
+            <File>
+              <FileName>FusionBias.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionBias.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionCompass.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\Fusion\FusionCompass.c</FilePath>
+            </File>
+            <File>
+              <FileName>FusionCompass.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionCompass.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionConvention.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionConvention.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionMath.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionMath.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionModel.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionModel.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionRemap.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionRemap.h</FilePath>
             </File>
           </Files>
         </Group>

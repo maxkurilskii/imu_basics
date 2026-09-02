@@ -29,12 +29,12 @@ typedef struct{
     float mtx[3][3]; //matrix
 }mag_calib_info_t;
 
-//typedef struct{
-//    float roll;
-//    float pitch;
-//    float yaw;   
-//    uint32_t   timestamp_ms;    
-//}imu_orient_t;
+typedef struct{
+    float roll;
+    float pitch;
+    float yaw;   
+    uint32_t   timestamp_ms;    
+}imu_orient_t;
 
 //typedef struct{
 //    int16_t 	acc_meas[3];

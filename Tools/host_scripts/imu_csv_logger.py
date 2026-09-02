@@ -5,7 +5,7 @@ import csv
 from pathlib import Path
 from enum import Enum
 from typing import List, Dict, Tuple, Optional, Union
-from base_dataclasses import ReadImuScaledMeasResponce
+from base_dataclasses import ReadImuScaledMeasResponce, ReadImuEulerResponce
 
 
 class ImuLogger:
@@ -28,7 +28,20 @@ class ImuLogger:
         
         if len(self.data_buffer) >= self.max_buf_size:
             self.flush_buffer()
-    
+            
+            
+    def save_angle_data(self, data: ReadImuEulerResponce) -> None:
+        record = [f"{data.timestamp:>9}", f"{data.roll:>9.3f}",
+                    f"{data.pitch:>9.3f}",  f"{data.yaw:>9.3f}"]
+        # only for mag calib:
+        # record = [*[f"{data:.3f}" for data in data.mag_meas]]
+
+        self.data_buffer.append(record)
+        
+        if len(self.data_buffer) >= self.max_buf_size:
+            self.flush_buffer()
+            
+            
     def flush_buffer(self):
         with open(self.file_name, mode = 'a', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
@@ -37,11 +50,11 @@ class ImuLogger:
     
     @staticmethod
     def create_new_csv(fname):
-        header = ["time_ms",
-                        "A_X", "A_Y", "A_Z", 
-                        "G_X", "G_Y", "G_Z", 
-                        "M_X", "M_Y", "M_Z"]
-        # header = ["time_ms",'roll', 'pitch',  'yaw']
+        # header = ["time_ms",
+        #                 "A_X", "A_Y", "A_Z", 
+        #                 "G_X", "G_Y", "G_Z", 
+        #                 "M_X", "M_Y", "M_Z"]
+        header = ["time_ms",'roll', 'pitch',  'yaw']
         header_formatted = [f"{data:>9}" for data in header]
         with open(fname, mode = 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
@@ -68,6 +81,8 @@ if __name__ == "__main__":
             
     
     #print(dt.datetime.today().strftime("%d:%m:%Y %H:%M:%S"))
+
+
 
 
 

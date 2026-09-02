@@ -13,8 +13,8 @@ void TIM1_UP_TIM10_IRQHandler(void){
             //transmit_byte_usart3(whoAmIValue);
             //transmit_mag_meas_usart3(mag_meas);
             //transmit_acc_gyro_meas_usart3(acc_meas, gyro_meas);
-            transmit_imu_meas_usart3( get_imu_scaled_meas() );
-            //transmit_imu_orient_usart3();
+//            transmit_imu_meas_usart3( get_imu_measurement() );
+            transmit_imu_orient_usart3( get_orientation() );
         }
     }
 
@@ -177,35 +177,35 @@ void transmit_imu_meas_usart3(imu_scaled_t* imu_m){
         DMA1_Stream3->CR |= DMA_SxCR_EN;
 }
 
-//void transmit_imu_orient_usart3(void){
-//    imu_orient_t orient = get_orientation_value();
-//    DMA1_Stream3->CR &= ~DMA_SxCR_EN;
-//    dma_clear_flags();
-//    //start(1) + cmd(1) + len(1) + data[16] + crc(2) = 21 bytes
-//    DMA1_Stream3->NDTR = 21;
-//    uint8_t *p_roll  = (uint8_t*)&orient.roll;
-//    uint8_t *p_pitch = (uint8_t*)&orient.pitch;
-//    uint8_t *p_yaw  = (uint8_t*)&orient.yaw;
-//    uint8_t *p_time = (uint8_t*)&orient.timestamp_ms;
+void transmit_imu_orient_usart3(imu_orient_t* euler_meas){
+    DMA1_Stream3->CR &= ~DMA_SxCR_EN;
+    dma_clear_flags();
+    //start(1) + cmd(1) + len(1) + data[16] + crc(2) = 21 bytes
+    DMA1_Stream3->NDTR = 21;
+    uint8_t *p_roll  = (uint8_t*)&euler_meas->roll;
+    uint8_t *p_pitch = (uint8_t*)&euler_meas->pitch;
+    uint8_t *p_yaw  = (uint8_t*)&euler_meas->yaw;
+    uint8_t *p_time = (uint8_t*)&euler_meas->timestamp_ms;
 
-//    tx_buffer[0] = 0x23; //start byte
-//    tx_buffer[1] = 0x42; //imu cmd code
-//    tx_buffer[2] = 0x10; //length of data = 16 
-//    for(uint8_t i = 0; i < 12; i++){
-//        tx_buffer[3+i]   = *(p_roll + i);
-//        tx_buffer[7+i]  = *(p_pitch + i);
-//        tx_buffer[11+i] = *(p_yaw + i);
-//    }
-//    //timestamp
-//    for(uint8_t i = 0; i < 4; i++) 
-//        tx_buffer[15+i] = *(p_time + i);
-//    
-//    //calc crc16 for saved 19 bytes
-//    uint16_t crc16 = CRC16_Calculate((uint8_t*)tx_buffer, 19);
-//    //save in big endian
-//    tx_buffer[19] = (uint8_t)((crc16 >> 8) & 0xFF) ; //high
-//    tx_buffer[20] = (uint8_t)(crc16 & 0xFF); //low 
+    tx_buffer[0] = 0x23; //start byte
+    tx_buffer[1] = 0x42; //imu cmd code
+    tx_buffer[2] = 0x10; //length of data = 16 
+    for(uint8_t i = 0; i < 12; i++){
+        tx_buffer[3+i]   = *(p_roll + i);
+        tx_buffer[7+i]  = *(p_pitch + i);
+        tx_buffer[11+i] = *(p_yaw + i);
+    }
+    //timestamp
+    for(uint8_t i = 0; i < 4; i++) 
+        tx_buffer[15+i] = *(p_time + i);
+    
+    //calc crc16 for saved 19 bytes
+    uint16_t crc16 = CRC16_Calculate((uint8_t*)tx_buffer, 19);
+    //save in big endian
+    tx_buffer[19] = (uint8_t)((crc16 >> 8) & 0xFF) ; //high
+    tx_buffer[20] = (uint8_t)(crc16 & 0xFF); //low 
 
-//    //Start transmitting
-//    DMA1_Stream3->CR |= DMA_SxCR_EN;
-//}
+    //Start transmitting
+    DMA1_Stream3->CR |= DMA_SxCR_EN;
+}
+

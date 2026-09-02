@@ -117,7 +117,7 @@ void Imu20948_Init(void);
 void get_register_value(uint8_t reg_addr);
 
 void update_imu_meas(void);
-imu_scaled_t* get_imu_scaled_meas(void);
+void get_imu_scaled_meas(imu_scaled_t* meas);
 //void get_raw_accel_gyro_meas(void);
 //void get_raw_magnet_meas(void);
 void swap_buffers();
@@ -128,6 +128,9 @@ void calibrate_gyro(void);
 void calibrate_mag(void);
 
 /* correction of raw meas */
-imu_scaled_t* get_corrected_imu_meas(imu_scaled_t* meas);
+void get_corrected_imu_meas(imu_scaled_t* meas);
+
+/* getter of read buffer*/
+imu_scaled_t* get_imu_measurement(void);
 
 #endif

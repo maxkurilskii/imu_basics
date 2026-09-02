@@ -199,10 +199,12 @@ def get_calibrated(sensor: Sensor, data: pd.DataFrame, norm: float | int) -> np.
         corrected_data = calibrator.apply_calibration(raw_data)
         # cut complex part for convenience (error-free) of plotting
         corrected_data = np.real(corrected_data) 
+        
+        # if save_params:
+        #     calibrator.save_calibration(filename)
         # print("Corrected data size: ", corrected_data.shape)
         # print(f"\nFirst 5 calibrated values of {sensor}:")
         # print(corrected_data[:5, :])
-    
     return corrected_data
 
 
@@ -232,12 +234,18 @@ def main():
                         help='Choose file to be processed in log_data folder!')
     parser.add_argument('-ps','--plot-sensor', dest='plot_sensor', choices=['accel', 'mag', 'gyro', 'all'], default='all',
                             help='For which sensor measurements plot should be build (default: all)')
+    parser.add_argument('--apply', type=str, nargs='?', const='default',
+                    help='Apply existing calibration from JSON file instead of calibrating. Optionally specify the JSON file path.')
     sub_parser = parser.add_subparsers(dest='command', required=False, 
                                    help='Sub-commands (calibrate)')
     calib_parser = sub_parser.add_parser('calibrate', 
                                          help='Calibration command parser')
     calib_parser.add_argument('-s', '--sensor', choices=['accel', 'mag', 'gyro', 'all'], default='all',
                                   help='Choose sensor to calibrate or calibrate both (default)')
+    # calib_parser.add_argument('--sj', dest='save_json', action='store_true', default=False,
+    #                         help='Whetрer to save calibration params after calibration (default: False)')
+    calib_parser.add_argument('--save', dest='save', action='store_true', default=False,
+                                help='Whetрer to save corrected measurements after calibration (default: False)')
     calib_parser.add_argument('--no-merge_plot', dest='nomerge', action='store_true', default=False,
                                       help='Whether to exclude calibrated data from the figure of raw data (default: no exlude.)')
     # calib_parser.add_argument('-p', '--plot', action='store_true', 
@@ -269,7 +277,7 @@ def main():
     gyro_raw_data = df.loc[:, ["gyro_x", "gyro_y", "gyro_z"]].to_numpy()
     mag_raw_data = df.loc[:, ["mag_x", "mag_y", "mag_z"]].to_numpy()
 
-    
+    # CALIBRATION
     calibrated_sensors = {}
     # Execute plotting with calibrated data
     if args.command == 'calibrate':
@@ -289,7 +297,25 @@ def main():
             calibrated_sensors[Sensor.MAG] = get_calibrated(Sensor.MAG, df.loc[:, ["mag_x", "mag_y", "mag_z"]], norm = MY_LOCAL_FIELD_uT)
         else:
             raise ValueError("No such sensor! Should be accel, mag, gyro (default all)")
+    
+    # SAVE CORRECTED MEAS
+    if 'save' in vars(args) and args.save:
+        new_df = df.loc[:,['time_s']]
+        if Sensor.ACCEL in calibrated_sensors:
+            new_df.loc[:,["acc_x", "acc_y", "acc_z"]] = calibrated_sensors[Sensor.ACCEL]
+        else:
+            new_df.loc[:,["acc_x", "acc_y", "acc_z"]] = df.loc[:,["acc_x", "acc_y", "acc_z"]]       
+        new_df.loc[:,["gyro_x", "gyro_y", "gyro_z"]] = df.loc[:,["gyro_x", "gyro_y", "gyro_z"]]
+        if Sensor.MAG in calibrated_sensors:
+            new_df.loc[:,["mag_x", "mag_y", "mag_z"]]= calibrated_sensors[Sensor.MAG]
+        else:
+            new_df.loc[:,["mag_x", "mag_y", "mag_z"]] = df.loc[:,["mag_x", "mag_y", "mag_z"]]
         
+        new_name = filename.stem + '_corrected' + '.csv'
+        new_df.to_csv(path_or_buf=Path("log_data")/new_name, index = False, lineterminator ='\n')
+        
+            
+    # BUILDING PLOTS
     nomerge_flag = vars(args).get('nomerge', False) 
     merge_plots = not nomerge_flag
     if args.plot_sensor == "accel":

@@ -273,6 +273,7 @@ void imu_timer_stop(void){
 
 
 
+
 void Imu20948_Init(void){
 	/* Configure imu ism20948*/
     powerup_imu();
@@ -284,9 +285,8 @@ void Imu20948_Init(void){
     /* INITIALIZE IMU TIMER9*/
     Timer9_Init();
     cur_spi_state = FREE;
+   
 }
-
-
 
 void get_register_value(uint8_t reg_addr){
     uint8_t imu_resp = 0;
@@ -304,28 +304,27 @@ void swap_buffers(void){
 }
 
 
-void update_imu_meas(void){
-	/*  
+void get_imu_scaled_meas(imu_scaled_t* meas){
+    /*  
     Read ACCEL_XOUT_H_ADD(6)->GYRO_XOUT_H_ADD(6)->TEMP_OUT_H_ADD(2)->EXT_SLV_SENS_DATA_00(9) 
     Decode 23 BYTES data from spi and encode in imu_data struct:
     accel(3 ax)[0:5] + gyro data(3 ax)[6:11] + temp[12,13] + mag_st1[14] + mag_data(3 ax)[15:20] + junk[21] + mag_st2[22] 
     FOR ACCEL and GYRO <MSB first>: GYRO_X_OUT_H -> GYRO_X_OUT_L.
     FOR MAGNET //LITTLE ENDIAN frm AK09916 <LSB first>: H_X_OUT_L -> H_X_OUT_H
     */
-    imu_scaled_t* new_meas = write_buf;
     //timestamp
-    new_meas->timestamp_ms = TIM9_PERIOD_MS * tim9_counter;
+    meas->timestamp_ms = TIM9_PERIOD_MS * tim9_counter;
     
     uint8_t imu_resp[23] = {0};
     spi_read(ACCEL_XOUT_H_ADD, imu_resp, 23);
 	//Account accel data SENS for chosen FULL SCALE range (+/- 2g)
-	new_meas->acc_meas[0] =  (int16_t)((uint16_t)imu_resp[0]	<< 8 | imu_resp[1])	/ 16384.0f; 
-	new_meas->acc_meas[1] =  (int16_t)((uint16_t)imu_resp[2]	<< 8 | imu_resp[3])	/ 16384.0f;
-	new_meas->acc_meas[2] =  (int16_t)((uint16_t)imu_resp[4]	<< 8 | imu_resp[5])	/ 16384.0f;
+	meas->acc_meas[0] =  (int16_t)((uint16_t)imu_resp[0]	<< 8 | imu_resp[1])	/ 16384.0f; 
+	meas->acc_meas[1] =  (int16_t)((uint16_t)imu_resp[2]	<< 8 | imu_resp[3])	/ 16384.0f;
+	meas->acc_meas[2] =  (int16_t)((uint16_t)imu_resp[4]	<< 8 | imu_resp[5])	/ 16384.0f;
 	//Account gyro data SENS for chosen FULL SCALE range (+/- 500dps)
-	new_meas->gyro_meas[0] = (int16_t)((uint16_t)imu_resp[6]	<< 8 | imu_resp[7])	 / 65.5f;
-	new_meas->gyro_meas[1] = (int16_t)((uint16_t)imu_resp[8]	<< 8 | imu_resp[9])	 / 65.5f;
-	new_meas->gyro_meas[2] = (int16_t)((uint16_t)imu_resp[10]	<< 8 | imu_resp[11]) / 65.5f;
+	meas->gyro_meas[0] = (int16_t)((uint16_t)imu_resp[6]	<< 8 | imu_resp[7])	 / 65.5f;
+	meas->gyro_meas[1] = (int16_t)((uint16_t)imu_resp[8]	<< 8 | imu_resp[9])	 / 65.5f;
+	meas->gyro_meas[2] = (int16_t)((uint16_t)imu_resp[10]	<< 8 | imu_resp[11]) / 65.5f;
     
     /*MAGNET decoding*/
     float mag_ovf_resp[3] = {4912.0, 4912.0, 4912.0};
@@ -337,19 +336,25 @@ void update_imu_meas(void){
     //check for magne field overflow (data are incorrect)
     if (mag_sr2 & (1U << MAG_ST2_HOFL_Pos)){
         toggle_led(LED3);
-        memcpy(new_meas->mag_meas, mag_ovf_resp, 12);
+        memcpy(meas->mag_meas, mag_ovf_resp, 12);
     }
     else{
-        new_meas->mag_meas[0] = (int16_t)((uint16_t)imu_resp[16]  << 8  | imu_resp[15]) * 0.15; 
-        new_meas->mag_meas[1] = (int16_t)((uint16_t)imu_resp[18]  << 8  | imu_resp[17]) * 0.15; 
-        new_meas->mag_meas[2] = (int16_t)((uint16_t)imu_resp[20]  << 8  | imu_resp[19]) * 0.15; 
+        meas->mag_meas[0] = (int16_t)((uint16_t)imu_resp[16]  << 8  | imu_resp[15]) * 0.15; 
+        meas->mag_meas[1] = (int16_t)((uint16_t)imu_resp[18]  << 8  | imu_resp[17]) * 0.15; 
+        meas->mag_meas[2] = (int16_t)((uint16_t)imu_resp[20]  << 8  | imu_resp[19]) * 0.15; 
     }
+}
+
+
+void update_imu_meas(void){   
+    get_imu_scaled_meas(write_buf);
+    get_corrected_imu_meas(write_buf);
+    swap_buffers();
     
-    swap_buffers(); 
 }
 
 //public function to get meas from read only buffer
-imu_scaled_t* get_imu_scaled_meas(void){
+imu_scaled_t* get_imu_measurement(void){
     return read_buf;
 }
 
@@ -362,10 +367,10 @@ void calibrate_gyro(void){
     imu_timer_start();
     while(meas_cnt < GYRO_CALIB_MEAS_NUMBER){
         if (cur_spi_state == READING){
-            update_imu_meas(); //blocking!!!
-            meas_sum[0] += read_buf->gyro_meas[0];
-            meas_sum[1] += read_buf->gyro_meas[1];
-            meas_sum[2] += read_buf->gyro_meas[2];
+            get_imu_scaled_meas(write_buf); //blocking!!!
+            meas_sum[0] += write_buf->gyro_meas[0];
+            meas_sum[1] += write_buf->gyro_meas[1];
+            meas_sum[2] += write_buf->gyro_meas[2];
             cur_spi_state = FREE;
             meas_cnt++;
         }
@@ -379,7 +384,7 @@ void calibrate_gyro(void){
 }
 
 
-imu_scaled_t* get_corrected_imu_meas(imu_scaled_t* meas){
+void get_corrected_imu_meas(imu_scaled_t* meas){
     //GYRO
     meas->gyro_meas[0] -= gyro_cal_pars.bias[0];
     meas->gyro_meas[1] -= gyro_cal_pars.bias[1];

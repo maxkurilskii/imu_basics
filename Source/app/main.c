@@ -1,7 +1,7 @@
 #include "common.h"
 #include "uart_unit.h"
 #include "imu_ism20948.h"
-//#include "filter_proces.h"
+#include "filter_proces.h"
 
 volatile uint32_t msCounter = 0;
 uint32_t start_delay = 0;
@@ -31,7 +31,7 @@ int main(void){
     SPI1_Init();
     uint8_t imu_resp = 0;
     Imu20948_Init();
-//  Madgwick_Filter_Init();
+    Madgwick_Filter_Init();
     
     /*init imu calibration */
     if (EXECUTE_CALIB){
@@ -49,12 +49,16 @@ int main(void){
         if (cur_spi_state == READING){
             //get_register_value(WHO_AM_I); 
             update_imu_meas(); //blocking!!!
-            imu_scaled_t* scaled_meas = get_imu_scaled_meas();
-            get_corrected_imu_meas(scaled_meas);       
+            update_orientation( get_imu_measurement() );   
             //change state 
             cur_spi_state = FREE;
         }   
         
+//        if (cur_usart3_state == USART3_TRANSMITING){
+//            transmit_imu_meas_usart3( get_imu_measurement() );
+////            transmit_imu_orient_usart3( get_orientation() );
+//        }
+//        
     }
 }
 
