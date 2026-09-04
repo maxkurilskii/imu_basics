@@ -19,6 +19,7 @@ typedef struct{
 }imu_msg_t;
 
 typedef enum{
+    USART3_READY,
     USART3_TRANSMITING,
     USART3_FREE
 }usart3_state_t;
@@ -35,7 +36,7 @@ void usart3_timer_start(void);
 void usart3_timer_stop(void);
 
 void transmit_byte_usart3(uint8_t data);
-void transmit_imu_meas_usart3(imu_scaled_t* imu_meas);
+void transmit_imu_meas_usart3(imu_scaled_meas_t* imu_meas);
 void transmit_imu_orient_usart3(imu_orient_t* euler_meas);
 
 void transmit_byte_usart3_debug(uint8_t data);

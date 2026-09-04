@@ -9,12 +9,7 @@ void TIM1_UP_TIM10_IRQHandler(void){
     if(TIM10->SR & TIM_SR_UIF){
         TIM10->SR &= ~TIM_SR_UIF;
         if(cur_usart3_state == USART3_FREE){
-            cur_usart3_state = USART3_TRANSMITING;
-            //transmit_byte_usart3(whoAmIValue);
-            //transmit_mag_meas_usart3(mag_meas);
-            //transmit_acc_gyro_meas_usart3(acc_meas, gyro_meas);
-//            transmit_imu_meas_usart3( get_imu_measurement() );
-            transmit_imu_orient_usart3( get_orientation() );
+            cur_usart3_state = USART3_READY;
         }
     }
 
@@ -143,16 +138,16 @@ void transmit_byte_usart3_debug(uint8_t data){
     //while (!(USART3->ISR & USART_ISR_TC));
 }
 
-void transmit_imu_meas_usart3(imu_scaled_t* imu_m){
+void transmit_imu_meas_usart3(imu_scaled_meas_t* imu_m){
     
         DMA1_Stream3->CR &= ~DMA_SxCR_EN;
         dma_clear_flags();
         //start(1) + cmd(1) + len(1) + data[40] + crc(2)
         DMA1_Stream3->NDTR = 45;
-		uint8_t *p_acc  = (uint8_t*)imu_m->acc_meas;
-		uint8_t *p_gyro = (uint8_t*)imu_m->gyro_meas;
-        uint8_t *p_mag  = (uint8_t*)imu_m->mag_meas;
-        uint8_t *p_time = (uint8_t*)&(imu_m->timestamp_ms);
+		uint8_t *p_acc  = (uint8_t*)imu_m->s_accel;
+		uint8_t *p_gyro = (uint8_t*)imu_m->s_gyro;
+        uint8_t *p_mag  = (uint8_t*)imu_m->s_mag;
+        uint8_t *p_time = (uint8_t*)&(imu_m->time_ms);
 	
 		tx_buffer[0] = 0x23; //start byte
 		tx_buffer[1] = 0x42; //imu cmd code
@@ -185,7 +180,7 @@ void transmit_imu_orient_usart3(imu_orient_t* euler_meas){
     uint8_t *p_roll  = (uint8_t*)&euler_meas->roll;
     uint8_t *p_pitch = (uint8_t*)&euler_meas->pitch;
     uint8_t *p_yaw  = (uint8_t*)&euler_meas->yaw;
-    uint8_t *p_time = (uint8_t*)&euler_meas->timestamp_ms;
+    uint8_t *p_time = (uint8_t*)&euler_meas->time_ms;
 
     tx_buffer[0] = 0x23; //start byte
     tx_buffer[1] = 0x42; //imu cmd code

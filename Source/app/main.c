@@ -5,7 +5,6 @@
 
 volatile uint32_t msCounter = 0;
 uint32_t start_delay = 0;
-uint32_t start_uart = 0;
 
 uint16_t tmp_rx_buffer = 0;
 uint8_t mag_device_id = 0;
@@ -45,20 +44,24 @@ int main(void){
     imu_timer_start();
     usart3_timer_start();   
     
+    //imu_scaled_meas_t imu_meas = {.s_accel = {0}, .s_gyro = {0}, .s_mag = {0}, .time_sec = 0};
+    
 	while(1){
-        if (cur_spi_state == READING){
+        if (cur_spi_state == SPI_READING){
             //get_register_value(WHO_AM_I); 
+            //get_imu_scaled_meas(&imu_meas);
             update_imu_meas(); //blocking!!!
-            update_orientation( get_imu_measurement() );   
-            //change state 
-            cur_spi_state = FREE;
-        }   
-        
-//        if (cur_usart3_state == USART3_TRANSMITING){
-//            transmit_imu_meas_usart3( get_imu_measurement() );
-////            transmit_imu_orient_usart3( get_orientation() );
-//        }
-//        
+            //update_orientation( get_imu_measurement() );   
+            cur_spi_state = SPI_FREE;
+        }           
+        if (cur_usart3_state == USART3_READY){
+            if (cur_spi_state == SPI_FREE){
+                cur_usart3_state = USART3_TRANSMITING;
+                 transmit_imu_meas_usart3( get_imu_measurement() );
+                //transmit_imu_meas_usart3( &imu_meas );
+                //transmit_imu_orient_usart3( get_orientation() );
+            }
+        }
     }
 }
 

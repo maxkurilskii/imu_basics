@@ -3,62 +3,38 @@
 uint8_t whoAmIValue = 0;
 uint32_t tim9_counter = 0;
 
-//double buffers
-imu_scaled_t buffer_a = {
-    .acc_meas = {0},
-    .gyro_meas = {0},
-    .mag_meas = {0},
-    .timestamp_ms = 0
+//buffer to hold raw data
+imu_raw_meas_t raw_meas_buf = {
+    .r_accel = {0},
+    .r_gyro = {0},
+    .r_mag = {0},
+    .time_ms = 0
 };
 
-imu_scaled_t buffer_b = {
-    .acc_meas = {0},
-    .gyro_meas = {0},
-    .mag_meas = {0},
-    .timestamp_ms = 0
+//buffer to hold scaled data
+imu_scaled_meas_t scaled_meas_buf = {
+    .s_accel = {0},
+    .s_gyro = {0},
+    .s_mag= {0},
+    .time_ms = 0
 };
 
-// addresses of measurement buffers read and write 
-imu_scaled_t* write_buf = &buffer_a; //buffer to write requesting meas
-imu_scaled_t* read_buf = &buffer_b; //buffer to read meas from other periph
+// address of measurement buffer
+//imu_scaled_meas_t* imu_meas = &scaled_meas_buf; //meas 
 
 
-gyro_calib_info_t gyro_cal_pars = {
-    .bias = {0}
-};
-
-
-const accel_calib_info_t acc_cal_pars = {
-    .bias = {0},
-    .mtx = {0},
-};
-
-const mag_calib_info_t mag_cal_pars = {
-//    .bias = {-39.011639, 9.399178, 9.811616},  
-//    .mtx = {
-//                {1.47478077, 0.06500727,  0.02306534}, 
-//                {0.06500727,  1.40433028, -0.01804741}, 
-//                {0.02306534, -0.01804741,  1.49679913}}
-    
-//    .bias = { 0.549387, -0.532294,  4.648358},  
-//    .mtx = {
-//                {0.632762, -0.100000, -0.029320},
-//                {-0.100000, 0.740875, -0.031670},
-//                {-0.029320, -0.031670, 0.634742}}
-
-    .bias = {-25.612981,   8.784697, 5.968302},  
-        .mtx = {
+//calibration params
+imu_calib_params_t calib_params = {
+    .gyro_bias = {0},
+    .accel_bias = {0},
+    .accel_mtx = {0},
+    .mag_bias = {-25.612981,   8.784697, 5.968302},  
+    .mag_mtx = {
              {1.464867, 0.107111, 0.087680},
              {0.107111, 1.299269, 0.195612},
              {0.087680, 0.195612, 1.579408}} 
-    
-//    .bias = {-18.232859, -3.765254, 8.891346},  
-//    .mtx = {
-//             {0.631648, -0.033543, -0.049528},
-//            {-0.033543, 0.789297, -0.069299},
-//            {-0.049528, -0.069299, 0.660749}} 
-};
 
+};
 
 void powerup_imu(void){ 
     uint8_t reg_value = 0;//var to verify written data 
@@ -217,12 +193,14 @@ void configure_magnetometer(void){
 
 
 
+
+
 void TIM1_BRK_TIM9_IRQHandler(void){
     if (TIM9->SR & TIM_SR_UIF){
         TIM9->SR &= ~TIM_SR_UIF; //clear flag!?
         tim9_counter += 1;
-        if (cur_spi_state == FREE){
-            cur_spi_state = READING;
+        if (cur_spi_state == SPI_FREE){
+            cur_spi_state = SPI_READING;
         }
     }
 }
@@ -274,6 +252,7 @@ void imu_timer_stop(void){
 
 
 
+
 void Imu20948_Init(void){
 	/* Configure imu ism20948*/
     powerup_imu();
@@ -284,7 +263,7 @@ void Imu20948_Init(void){
     spi_write(REG_BANK_SEL_ADD, (0x00 << REG_BANK_SEL_USER_BANK_Pos));
     /* INITIALIZE IMU TIMER9*/
     Timer9_Init();
-    cur_spi_state = FREE;
+    cur_spi_state = SPI_FREE;
    
 }
 
@@ -295,40 +274,27 @@ void get_register_value(uint8_t reg_addr){
     whoAmIValue = imu_resp;
 }
 
-
-void swap_buffers(void){
-    //swap addresses of write and read imu_scaled_t structures
-    imu_scaled_t* temp = write_buf;
-    write_buf = read_buf; 
-    read_buf = temp;
-}
-
-
-void get_imu_scaled_meas(imu_scaled_t* meas){
+void get_imu_raw_meas(imu_raw_meas_t* meas){
     /*  
     Read ACCEL_XOUT_H_ADD(6)->GYRO_XOUT_H_ADD(6)->TEMP_OUT_H_ADD(2)->EXT_SLV_SENS_DATA_00(9) 
     Decode 23 BYTES data from spi and encode in imu_data struct:
     accel(3 ax)[0:5] + gyro data(3 ax)[6:11] + temp[12,13] + mag_st1[14] + mag_data(3 ax)[15:20] + junk[21] + mag_st2[22] 
-    FOR ACCEL and GYRO <MSB first>: GYRO_X_OUT_H -> GYRO_X_OUT_L.
-    FOR MAGNET //LITTLE ENDIAN frm AK09916 <LSB first>: H_X_OUT_L -> H_X_OUT_H
     */
-    //timestamp
-    meas->timestamp_ms = TIM9_PERIOD_MS * tim9_counter;
-    
+    //fix time before measurement
+    meas->time_ms = TIM9_PERIOD_MS * tim9_counter;
     uint8_t imu_resp[23] = {0};
     spi_read(ACCEL_XOUT_H_ADD, imu_resp, 23);
-	//Account accel data SENS for chosen FULL SCALE range (+/- 2g)
-	meas->acc_meas[0] =  (int16_t)((uint16_t)imu_resp[0]	<< 8 | imu_resp[1])	/ 16384.0f; 
-	meas->acc_meas[1] =  (int16_t)((uint16_t)imu_resp[2]	<< 8 | imu_resp[3])	/ 16384.0f;
-	meas->acc_meas[2] =  (int16_t)((uint16_t)imu_resp[4]	<< 8 | imu_resp[5])	/ 16384.0f;
-	//Account gyro data SENS for chosen FULL SCALE range (+/- 500dps)
-	meas->gyro_meas[0] = (int16_t)((uint16_t)imu_resp[6]	<< 8 | imu_resp[7])	 / 65.5f;
-	meas->gyro_meas[1] = (int16_t)((uint16_t)imu_resp[8]	<< 8 | imu_resp[9])	 / 65.5f;
-	meas->gyro_meas[2] = (int16_t)((uint16_t)imu_resp[10]	<< 8 | imu_resp[11]) / 65.5f;
+    /* FOR ACCEL and GYRO <MSB first>: GYRO_X_OUT_H -> GYRO_X_OUT_L */
+    meas->r_accel[0] =  (int16_t)((uint16_t)imu_resp[0]	<< 8 | imu_resp[1]);	 
+	meas->r_accel[1] =  (int16_t)((uint16_t)imu_resp[2]	<< 8 | imu_resp[3]);
+	meas->r_accel[2] =  (int16_t)((uint16_t)imu_resp[4]	<< 8 | imu_resp[5]);
+    
+	meas->r_gyro[0] = (int16_t)((uint16_t)imu_resp[6]	<< 8 | imu_resp[7]);	
+	meas->r_gyro[1] = (int16_t)((uint16_t)imu_resp[8]	<< 8 | imu_resp[9]);	
+	meas->r_gyro[2] = (int16_t)((uint16_t)imu_resp[10]	<< 8 | imu_resp[11]);
     
     /*MAGNET decoding*/
-    float mag_ovf_resp[3] = {4912.0, 4912.0, 4912.0};
-    uint8_t mag_sr1 = imu_resp[14];
+    uint8_t mag_sr1 = imu_resp[14]; 
     //if (mag_sr1 & (1U << MAG_ST1_DOR_Pos)) toggle_led(LED2);
     uint8_t mag_sr2 = imu_resp[22];
     //mag_responce[21] is dummy byte
@@ -336,28 +302,36 @@ void get_imu_scaled_meas(imu_scaled_t* meas){
     //check for magne field overflow (data are incorrect)
     if (mag_sr2 & (1U << MAG_ST2_HOFL_Pos)){
         toggle_led(LED3);
-        memcpy(meas->mag_meas, mag_ovf_resp, 12);
     }
-    else{
-        meas->mag_meas[0] = (int16_t)((uint16_t)imu_resp[16]  << 8  | imu_resp[15]) * 0.15; 
-        meas->mag_meas[1] = (int16_t)((uint16_t)imu_resp[18]  << 8  | imu_resp[17]) * 0.15; 
-        meas->mag_meas[2] = (int16_t)((uint16_t)imu_resp[20]  << 8  | imu_resp[19]) * 0.15; 
+    /* FOR MAGNET - LITTLE ENDIAN frm AK09916 <LSB first>: H_X_OUT_L -> H_X_OUT_H*/
+    meas->r_mag[0] = (int16_t)((uint16_t)imu_resp[16]  << 8  | imu_resp[15]); 
+    meas->r_mag[1] = (int16_t)((uint16_t)imu_resp[18]  << 8  | imu_resp[17]); 
+    meas->r_mag[2] = (int16_t)((uint16_t)imu_resp[20]  << 8  | imu_resp[19]); 
+}
+
+void get_imu_scaled_meas(imu_scaled_meas_t* meas){
+    get_imu_raw_meas(&raw_meas_buf);
+    meas->time_ms = raw_meas_buf.time_ms;
+    for(uint8_t i = 0; i < 3; i++){
+        //Account accel data SENS for chosen FULL SCALE range (+/- 2g)
+        meas->s_accel[i] =  raw_meas_buf.r_accel[i]	/ 16384.0f; 
+        //Account gyro data SENS for chosen FULL SCALE range (+/- 500dps)
+        meas->s_gyro[i] = raw_meas_buf.r_gyro[i]	 / 65.5f;
+        //Account mag data SENS .15 
+        meas->s_mag[i] = raw_meas_buf.r_mag[i] * 0.15; 
     }
 }
 
 
 void update_imu_meas(void){   
-    get_imu_scaled_meas(write_buf);
-    get_corrected_imu_meas(write_buf);
-    swap_buffers();
-    
+    get_imu_scaled_meas(&scaled_meas_buf);
+    get_corrected_imu_meas(&scaled_meas_buf);
 }
 
-//public function to get meas from read only buffer
-imu_scaled_t* get_imu_measurement(void){
-    return read_buf;
+//"public" function to get meas from scaled_meas_buf
+imu_scaled_meas_t* get_imu_measurement(void){
+    return &scaled_meas_buf;
 }
-
 
 
 void calibrate_gyro(void){
@@ -366,47 +340,43 @@ void calibrate_gyro(void){
     float meas_sum[3] = {0};
     imu_timer_start();
     while(meas_cnt < GYRO_CALIB_MEAS_NUMBER){
-        if (cur_spi_state == READING){
-            get_imu_scaled_meas(write_buf); //blocking!!!
-            meas_sum[0] += write_buf->gyro_meas[0];
-            meas_sum[1] += write_buf->gyro_meas[1];
-            meas_sum[2] += write_buf->gyro_meas[2];
-            cur_spi_state = FREE;
+        if (cur_spi_state == SPI_READING){
+            get_imu_scaled_meas(&scaled_meas_buf); //blocking!!!
+            meas_sum[0] += scaled_meas_buf.s_gyro[0];
+            meas_sum[1] += scaled_meas_buf.s_gyro[1];
+            meas_sum[2] += scaled_meas_buf.s_gyro[2];
+            cur_spi_state = SPI_FREE;
             meas_cnt++;
         }
     }
-    
     imu_timer_stop();
-    gyro_cal_pars.bias[0] = meas_sum[0] / GYRO_CALIB_MEAS_NUMBER;
-    gyro_cal_pars.bias[1] = meas_sum[1] / GYRO_CALIB_MEAS_NUMBER;
-    gyro_cal_pars.bias[2] = meas_sum[2] / GYRO_CALIB_MEAS_NUMBER;
-    
+    calib_params.gyro_bias[0] = meas_sum[0] / GYRO_CALIB_MEAS_NUMBER;
+    calib_params.gyro_bias[1] = meas_sum[1] / GYRO_CALIB_MEAS_NUMBER;
+    calib_params.gyro_bias[2] = meas_sum[2] / GYRO_CALIB_MEAS_NUMBER; 
 }
 
 
-void get_corrected_imu_meas(imu_scaled_t* meas){
-    //GYRO
-    meas->gyro_meas[0] -= gyro_cal_pars.bias[0];
-    meas->gyro_meas[1] -= gyro_cal_pars.bias[1];
-    meas->gyro_meas[2] -= gyro_cal_pars.bias[2];
+void get_corrected_imu_meas(imu_scaled_meas_t* meas){
+    /* GYRO corection: meas_corrected = meas - bias*/
+    meas->s_gyro[0] -= calib_params.gyro_bias[0];
+    meas->s_gyro[1] -= calib_params.gyro_bias[1];
+    meas->s_gyro[2] -= calib_params.gyro_bias[2];
     
-   //ACCEL - no correction yet
+    //ACCEL - no correction yet
     
-    //Magnet
-    float* mag_meas = meas->mag_meas; //short form
-    mag_meas[0]  -= mag_cal_pars.bias[0];
-    mag_meas[1]  -= mag_cal_pars.bias[1];
-    mag_meas[2]  -= mag_cal_pars.bias[2];
-    
-    //multiply by the transposed of the matrix
-    float mag0  = mag_meas[0]*mag_cal_pars.mtx[0][0]  + mag_meas[1]*mag_cal_pars.mtx[0][1] + mag_meas[2]*mag_cal_pars.mtx[0][2];
-    float mag1  = mag_meas[0]*mag_cal_pars.mtx[1][0]  + mag_meas[1]*mag_cal_pars.mtx[1][1] + mag_meas[2]*mag_cal_pars.mtx[1][2];
-    float mag2  = mag_meas[0]*mag_cal_pars.mtx[2][0]  + mag_meas[1]*mag_cal_pars.mtx[2][1] + mag_meas[2]*mag_cal_pars.mtx[2][2];
+    /* MAG correction: meas_corrected = (meas - bias) x A_inv */
+    float* mag_meas = meas->s_mag; //short form
+    mag_meas[0]  -= calib_params.mag_bias[0];
+    mag_meas[1]  -= calib_params.mag_bias[1];
+    mag_meas[2]  -= calib_params.mag_bias[2];
+
+    float mag0  = mag_meas[0]*calib_params.mag_mtx[0][0]  + mag_meas[1]*calib_params.mag_mtx[1][0] + mag_meas[2]*calib_params.mag_mtx[2][0];
+    float mag1  = mag_meas[0]*calib_params.mag_mtx[0][1]  + mag_meas[1]*calib_params.mag_mtx[1][1] + mag_meas[2]*calib_params.mag_mtx[2][1];
+    float mag2  = mag_meas[0]*calib_params.mag_mtx[0][2]  + mag_meas[1]*calib_params.mag_mtx[1][2] + mag_meas[2]*calib_params.mag_mtx[2][2];
         
     mag_meas[0] = mag0;
     mag_meas[1] = mag1;
-    mag_meas[2] = mag2;
-    
+    mag_meas[2] = mag2; 
 }
 
 

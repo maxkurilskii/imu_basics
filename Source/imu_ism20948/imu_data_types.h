@@ -3,53 +3,42 @@
 
 #include "common.h"
 
-
-//base imu data type struct
+//imu raw measurments type 
 typedef struct{
-    float	    acc_meas[3];
-    float	    gyro_meas[3];
-    float       mag_meas[3];
-    uint32_t   timestamp_ms;
-}imu_scaled_t;
+    int16_t    r_accel[3];
+    int16_t    r_gyro[3];
+    int16_t    r_mag[3];
+    uint32_t    time_ms;
+}imu_raw_meas_t;
 
 
+//imu scaled measurements type struct
 typedef struct{
-    float bias[3];
-}gyro_calib_info_t;
+    float	    s_accel[3];
+    float	    s_gyro[3];
+    float       s_mag[3];
+    uint32_t    time_ms;
+}imu_scaled_meas_t;
 
+
+// calibration params type struct
 typedef struct{
-    float bias[3];
-    float mtx[3][3]; //matrix
-}accel_calib_info_t;
+    float gyro_bias[3];
+    float accel_bias[3];
+    float accel_mtx[3][3]; //alrdy inverted matrix!
+    float mag_bias[3]; //hard iron
+    //soft iron + scale + no-orthogonality 
+    float mag_mtx[3][3];  //alrdy inverted matrix!
+}imu_calib_params_t;
 
-typedef struct{
-    //hard iron
-    float bias[3];
-    //soft iron + scale + no-orthoganality 
-    float mtx[3][3]; //matrix
-}mag_calib_info_t;
-
+//imu orientation measurements type struct
 typedef struct{
     float roll;
     float pitch;
     float yaw;   
-    uint32_t   timestamp_ms;    
+    uint32_t   time_ms;    
 }imu_orient_t;
 
-//typedef struct{
-//    int16_t 	acc_meas[3];
-//    int16_t	    gyro_meas[3];
-//    int16_t     ag_meas[3];
-//    uint32_t    timestamp_ms;
-//}imu_raw_data_t;
-
-
-//typedef struct{
-//    float	acc_meas[3];
-//    float	gyro_meas[3];
-//    float   mag_meas[3];
-//    float   timestamp;
-//}imu_filtered_data_t;
 
 
 #endif

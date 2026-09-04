@@ -15,7 +15,7 @@ void filter_timer_stop(void);
 void Madgwick_Filter_Init(void);
 
 void swap_orientation_buffers(void);
-void update_orientation(imu_scaled_t* imu_meas);
+void update_orientation(imu_scaled_meas_t* imu_meas);
 imu_orient_t* get_orientation(void);
 
 

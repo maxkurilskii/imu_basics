@@ -1,6 +1,6 @@
 #include "spi_com.h"
 
-volatile spi_state_t cur_spi_state = FREE;
+volatile spi_state_t cur_spi_state = SPI_FREE;
 //uint8_t spi_tx_buffer[30] = {0};
 //volatile uint8_t spi_rx_buffer[30] = {0};
 //uint8_t spi_rx_data_cnt = 0;

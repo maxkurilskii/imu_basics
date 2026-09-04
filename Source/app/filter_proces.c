@@ -3,10 +3,10 @@
 FusionAhrs ahrs;
 
 imu_orient_t buf_a = { .roll = 0.0f, .pitch = 0.0f, .yaw = 0.0f, 
-                         .timestamp_ms = 0};
+                         .time_ms = 0};
 
 imu_orient_t buf_b = { .roll = 0.0f, .pitch = 0.0f, .yaw = 0.0f, 
-                         .timestamp_ms = 0};
+                         .time_ms = 0};
 
 imu_orient_t* eu_write_buf = &buf_a;   
 imu_orient_t* eu_read_buf = &buf_b;
@@ -25,28 +25,18 @@ imu_orient_t* get_orientation(void){
     return eu_read_buf;
 }
 
-void update_orientation(imu_scaled_t* imu_meas){
-    float gx = imu_meas->gyro_meas[0];
-    float gy = imu_meas->gyro_meas[1];
-    float gz = imu_meas->gyro_meas[2];
-    FusionVector gyroscope = {gx, gy, gz};
-    
-    float ax = imu_meas->acc_meas[0];
-    float ay = imu_meas->acc_meas[1];
-    float az = imu_meas->acc_meas[2];
-    FusionVector accelerometer = {ax, ay, az};
-    
-    float mx = imu_meas->mag_meas[0];
-    float my = imu_meas->mag_meas[1];
-    float mz = imu_meas->mag_meas[2];
-    FusionVector magnetometer = {mx, my, mz};
+void update_orientation(imu_scaled_meas_t* meas){
+
+    FusionVector gyroscope = {meas->s_gyro[0], meas->s_gyro[1], meas->s_gyro[2]};
+    FusionVector accelerometer = {meas->s_accel[0], meas->s_accel[2], meas->s_accel[2]};
+    FusionVector magnetometer = {meas->s_mag[0], meas->s_mag[1], meas->s_mag[2]};
 
     FusionAhrsUpdate(&ahrs, gyroscope, accelerometer, magnetometer);
     FusionEuler euler = FusionQuaternionToEuler(FusionAhrsGetQuaternion(&ahrs));
     eu_write_buf->roll = euler.angle.roll;
     eu_write_buf->pitch = euler.angle.pitch;
     eu_write_buf->yaw = euler.angle.yaw;
-    eu_write_buf->timestamp_ms = imu_meas->timestamp_ms;
+    eu_write_buf->time_ms = meas->time_ms;
     swap_orientation_buffers();
 }
 
