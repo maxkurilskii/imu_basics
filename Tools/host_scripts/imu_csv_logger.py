@@ -5,24 +5,25 @@ import csv
 from pathlib import Path
 from enum import Enum
 from typing import List, Dict, Tuple, Optional, Union
-from base_dataclasses import ReadImuScaledMeasResponce, ReadImuEulerResponce
+from base_dataclasses import *
 
 
 class ImuLogger:
-    def __init__(self, filename = None):
-        self.file_name = self._generate_filename() if filename is None else filename
-        self.create_new_csv(self.file_name)
+    def __init__(self, filename = None, log_dir = None, header = None):
+        if filename is None or log_dir is None:
+            self.file_name = self._generate_filename()
+        else:
+            self.file_name = filename
+
+        self.create_new_csv(self.file_name, header)
         self.max_buf_size = 100
         self.data_buffer: list = []
     
     def save_scaled_data(self, data: ReadImuScaledMeasResponce) -> None:
-        record = [f"{data.timestamp:>9}", 
+        record = [f"{data.timestamp:>12}", 
                     *[f"{data:>9.3f}" for data in data.accel_meas],
                     *[f"{data:>9.3f}" for data in data.gyro_meas],
                     *[f"{data:>9.3f}" for data in data.mag_meas]]
-        
-        # only for mag calib:
-        # record = [*[f"{data:.3f}" for data in data.mag_meas]]
 
         self.data_buffer.append(record)
         
@@ -33,9 +34,6 @@ class ImuLogger:
     def save_angle_data(self, data: ReadImuEulerResponce) -> None:
         record = [f"{data.timestamp:>9}", f"{data.roll:>9.3f}",
                     f"{data.pitch:>9.3f}",  f"{data.yaw:>9.3f}"]
-        # only for mag calib:
-        # record = [*[f"{data:.3f}" for data in data.mag_meas]]
-
         self.data_buffer.append(record)
         
         if len(self.data_buffer) >= self.max_buf_size:
@@ -49,19 +47,21 @@ class ImuLogger:
         self.data_buffer = []
     
     @staticmethod
-    def create_new_csv(fname):
+    def create_new_csv(fname, header):
         # header = ["time_ms",
         #                 "A_X", "A_Y", "A_Z", 
         #                 "G_X", "G_Y", "G_Z", 
         #                 "M_X", "M_Y", "M_Z"]
-        header = ["time_ms",'roll', 'pitch',  'yaw']
-        header_formatted = [f"{data:>9}" for data in header]
         with open(fname, mode = 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
-            writer.writerow(header_formatted)
+            if header is not None:
+                header_formatted = [f"{data:>9}" for data in header]
+                writer.writerow(header_formatted)
+
+
     
     @staticmethod
-    def _generate_filename():
+    def _generate_filename():     
         timestamp = dt.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
         log_dir = Path("log_data")
         log_dir.mkdir(exist_ok=True)

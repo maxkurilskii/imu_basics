@@ -1,11 +1,11 @@
+import argparse
 import struct
 import serial
 import time
 from enum import Enum
 
-from typing import List, Dict, Tuple, Optional, Union
-from base_dataclasses import  ReadImuEulerCommand, ReadImuEulerResponce,\
-                                ReadImuScaledMeasCommand, ReadImuScaledMeasResponce
+from typing import Optional
+from base_dataclasses import  *
 from imu_csv_logger import ImuLogger
 from crc16 import calculate_crc16
 
@@ -170,26 +170,28 @@ class UartCom:
 
 
 def main():
-    try:
-        imu_csv_logger = ImuLogger()
-        com_master = UartCom("COM4", timeout_sec=0.05)
-        a = com_master._my_serial.read(1)
-        # meas_cnt = 100
-        while(com_master._my_serial.is_open):
-        # while(meas_cnt):
-            # data = com_master.uart_read_imu_scaled_data() #blocking!!!   
-            data = com_master.uart_read_imu_euler_data() #blocking!!!
-            if data is not None: 
-                # imu_csv_logger.save_scaled_data(data)
-                imu_csv_logger.save_angle_data(data)
-                # meas_cnt -= 1
-    except serial.SerialException:
-        print("Serial connection lost. Data saved")
-    except KeyboardInterrupt:
-        print("End event was raised. Data saved")
-    finally:
-        imu_csv_logger.flush_buffer()
-        print("Completion of program")     
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', '--log', choices=['scaled','euler'], default='scaled')
+    args = parser.parse_args()
+    if args.log == 'scaled':
+        header = ["time_ms",
+                            "A_X", "A_Y", "A_Z", 
+                            "G_X", "G_Y", "G_Z", 
+                            "M_X", "M_Y", "M_Z"]
+        imu_csv_logger = ImuLogger(header = header)
+        try:                
+            com_master = UartCom("COM4", timeout_sec=0.05)
+            while(com_master._my_serial.is_open):
+                data = com_master.uart_read_imu_scaled_data() #blocking!!!   
+                if data is not None: 
+                    imu_csv_logger.save_scaled_data(data)
+        except serial.SerialException:
+            print("Serial connection lost. Data saved")
+        except KeyboardInterrupt:
+            print("End event was raised. Data saved")
+        finally:
+            imu_csv_logger.flush_buffer()
+            print("Completion of program")     
            
            
 if __name__ == "__main__":

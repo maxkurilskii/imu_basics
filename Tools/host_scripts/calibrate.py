@@ -32,11 +32,10 @@ import pandas as pd
 from scipy import linalg
 from matplotlib import pyplot as plt
 
-
 class MagnetometerCalibrator:
     """Magnetometer calibration using ellipsoid fitting method."""
     
-    def __init__(self, magnetic_field_strength=1000):
+    def __init__(self, magnetic_field_strength: int| float = 1000):
         """
         Initialize calibrator.
         
@@ -150,9 +149,9 @@ class MagnetometerCalibrator:
     def save_calibration(self, filename):
         """Save calibration parameters to JSON file."""
         calibration_data = {
-            "hard_iron_bias": self.b.flatten().tolist(),
-            "soft_iron_matrix": self.A_1.tolist(),
-            "magnetic_field_strength": self.F,
+            "hard_iron_bias": np.real(self.b).flatten().tolist(),
+            "soft_iron_matrix":np.real(self.A_1).tolist(),
+            "magnetic_field_strength": np.real(self.F),
             "unit": "microtesla"
         }
         

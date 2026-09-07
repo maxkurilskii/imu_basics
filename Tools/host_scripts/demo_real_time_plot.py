@@ -160,37 +160,37 @@ def main():
         com_master = UartCom("COM4", timeout_sec=0.01)
         sensor = Sensor.ACCEL
         FIGURE_SIZE  = (8, 6)
-        # sensor_plotter = RealTimeSensorPlotter(PLT_WINDOW_SIZE, sensor, FIGURE_SIZE)
-        euler_plotter = RealTimeEulerPlotter(PLT_WINDOW_SIZE, sensor, FIGURE_SIZE)
+        sensor_plotter = RealTimeSensorPlotter(PLT_WINDOW_SIZE, sensor, FIGURE_SIZE)
+        # euler_plotter = RealTimeEulerPlotter(PLT_WINDOW_SIZE, sensor, FIGURE_SIZE)
 
-        while(com_master._my_serial.is_open):
-            now = time.monotonic() 
-            resp: Optional[ReadImuEulerResponce] = com_master.uart_read_imu_euler_data() #blocking!!!
-            if resp is not None: 
-                meas_buffer.append((resp.roll, resp.pitch, resp.yaw, resp.timestamp / 1000.0))
-            if now - last_upd >= PLT_TIMER_PERIOD and meas_buffer:
-                start = time.perf_counter()     
-                # create gyro numpy data base on meas_cnt records (copy again!)        
-                euler_plotter.plot_angle_data(np.array(meas_buffer))
-                print(f"[OUT] Plotting takes: {time.perf_counter() - start:.3f} sec")
-                last_upd = now          
-                              
         # while(com_master._my_serial.is_open):
-        # # while(meas_cnt < TOTAL_MEAS_CNT):
         #     now = time.monotonic() 
-        #     resp: Optional[ReadImuScaledMeasResponce] = com_master.uart_read_imu_scaled_data() #blocking!!!
+        #     resp: Optional[ReadImuEulerResponce] = com_master.uart_read_imu_euler_data() #blocking!!!
         #     if resp is not None: 
-        #         if  sensor == Sensor.ACCEL:  
-        #             meas_buffer.append((*resp.accel_meas, resp.timestamp / 1000.0))
-        #         elif  sensor == Sensor.GYRO: 
-        #             meas_buffer.append((*resp.gyro_meas, resp.timestamp / 1000.0))
-        #         elif  sensor == Sensor.MAG: 
-        #             meas_buffer.append((*resp.mag_meas,  resp.timestamp / 1000.0))
+        #         meas_buffer.append((resp.roll, resp.pitch, resp.yaw, resp.timestamp / 1000.0))
+        #     if now - last_upd >= PLT_TIMER_PERIOD and meas_buffer:
+        #         start = time.perf_counter()     
+        #         # create gyro numpy data base on meas_cnt records (copy again!)        
+        #         # euler_plotter.plot_angle_data(np.array(meas_buffer))
+        #         print(f"[OUT] Plotting takes: {time.perf_counter() - start:.3f} sec")
+        #         last_upd = now          
+                              
+        while(com_master._my_serial.is_open):
+        # while(meas_cnt < TOTAL_MEAS_CNT):
+            now = time.monotonic() 
+            resp: Optional[ReadImuScaledMeasResponce] = com_master.uart_read_imu_scaled_data() #blocking!!!
+            if resp is not None: 
+                if  sensor == Sensor.ACCEL:  
+                    meas_buffer.append((*resp.accel_meas, resp.timestamp / 1000.0))
+                elif  sensor == Sensor.GYRO: 
+                    meas_buffer.append((*resp.gyro_meas, resp.timestamp / 1000.0))
+                elif  sensor == Sensor.MAG: 
+                    meas_buffer.append((*resp.mag_meas,  resp.timestamp / 1000.0))
 
             if now - last_upd >= PLT_TIMER_PERIOD and meas_buffer:
                 start = time.perf_counter()     
                 # create gyro numpy data base on meas_cnt records (copy again!)        
-                plotter.plot_data(np.array(meas_buffer))
+                sensor_plotter.plot_data(np.array(meas_buffer))
                 print(f"[OUT] Plotting takes: {time.perf_counter() - start:.3f} sec")
                 last_upd = now
         
