@@ -1,9 +1,10 @@
 import argparse
 import csv
+import json
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from collections import deque
+from typing import Optional, Tuple, List, Union
 import matplotlib.pyplot as plt
 from enum import Enum
 from calibrate import MagnetometerCalibrator
@@ -30,7 +31,6 @@ def plot_3d(data: np.ndarray, title = "Magnitometer", label = "Raw", color = 're
     dot_size = 15
     alpha = 0.8
     fig_3d = plt.figure(figsize=FIG_3D_SIZE)
-    ax1 = fig_3d.add_subplot(projection='3d')
     ax1 = fig_3d.add_subplot(projection='3d')
     ax1.scatter(data[:, 0], data[:, 1], data[:, 2], 
                     s = dot_size, alpha=alpha, c = color)
@@ -61,9 +61,10 @@ def merge_plot_3d(raw_data: np.ndarray, calibrated_data: np.ndarray):
     fig_3d = plt.figure(figsize=FIG_3D_SIZE)
     ax1 = fig_3d.add_subplot(111, projection='3d')
     ax1.scatter(raw_data[:, 0], raw_data[:, 1], raw_data[:, 2], 
-                s = dot_size, alpha=raw_alpha, c = raw_color)
+                s = dot_size, alpha=raw_alpha, c = raw_color, label = 'Raw')
     ax1.scatter(calibrated_data[:, 0], calibrated_data[:, 1], calibrated_data[:, 2],
-                s = dot_size, alpha=calib_alpha, c = calib_color)
+                s = dot_size, alpha=calib_alpha, c = calib_color, label = 'Calibrated')
+    ax1.legend()
     ax1.set_title('Trajectory 3D')
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
@@ -147,30 +148,24 @@ def plot_sensor_merged_measurements(time: np.ndarray, raw_data: np.ndarray, cali
     plt.show()
  
 
-def hampel_filtration(meas: pd.DataFrame):
-    """
-    Args:
-        pd.DataFrame (n x 3): raw meas
-    Returns:
-        pd.DataFrame (n x 3): cleared meas frame from outliers 
-        
-    For mor info check outlier_rejection_analysis.ipynb script
-    """
-    # calc median for each axis
-    meas_median = meas.median()
-    # absolute deviation from median value
-    abs_dev = abs(meas - meas_median)
-    # MAD 
-    MAD = 1.4826 * abs_dev.median()
-    # threshold ~ 3sigma?
-    T = 3 * MAD
-    # filter only valid meas: if there is any axis meas that is greater then thres -> row of meas (x,y,z) is banned 
-    mask =  abs_dev < T
-    #filter out rows if any value is false
-    return meas[mask.all(axis=1)] #axis = 1 -> horizontally
+def collect_data_stats(data: Union[np.ndarray, pd.DataFrame]) -> dict:
+    if isinstance(data, pd.DataFrame):
+        data.describe()
+        data.to_numpy()
+    stats = {"shape": f'{data.shape}'}
+    norm_ar = np.linalg.norm(data, axis=1)
+    stats["mean_norm"] = np.mean(norm_ar)
+    stats['std_norm'] = np.std(norm_ar)
+    stats['min_norm'] = np.min(norm_ar)
+    stats['max_norm'] = np.max(norm_ar)
+    print(f'Shape of data: {stats["shape"]}')
+    print(f'Mean norm: {stats["mean_norm"]}')
+    print(f'STD: {stats['std_norm']}')
+    print(f'Min: { stats['min_norm']}, max: { stats['max_norm']}')
+    return stats
 
-
-def get_calibrated(sensor: Sensor, data: pd.DataFrame, norm: float | int) -> np.ndarray:
+def get_calibrated(sensor: Sensor, data: pd.DataFrame, 
+                   norm: Optional[float] = None, calibrator: Optional[MagnetometerCalibrator] = None) -> Tuple[np.ndarray, MagnetometerCalibrator]:
     """ 
     Execute calibration pipeline from calibrate.py for magnetometer OR accelerometer
     Input: 
@@ -179,33 +174,36 @@ def get_calibrated(sensor: Sensor, data: pd.DataFrame, norm: float | int) -> np.
     Output: calibrated  meas(n x 3) numpy array   
     """
     if sensor in [Sensor.ACCEL, Sensor.MAG]:
-        # outlier rejection before firstly
-        cleared_raw_meas = hampel_filtration(data).to_numpy()
-        # calibration object fro magnetometer and accel
-        calibrator = MagnetometerCalibrator(norm)
-        # find calib params
-        calibrator.calibrate(cleared_raw_meas) 
-        print("\nCalibration completed!")
-        print("Hard iron bias (microTesla) for (X, Y, Z):")
-        print(f"{{ {np.real(calibrator.b[0,0]):.6f},\
-                   {np.real(calibrator.b[1,0]):.6f},\
-                   {np.real(calibrator.b[2,0]):.6f} }}")
-        print("\nSoft iron transformation matrix:")
-        print(f'{{{calibrator.A_1[0, 0]:.6f}, {calibrator.A_1[0, 1]:.6f}, {calibrator.A_1[0, 2]:.6f}}},')
-        print(f'{{{calibrator.A_1[1, 0]:.6f}, {calibrator.A_1[1, 1]:.6f}, {calibrator.A_1[1, 2]:.6f}}},')
-        print(f'{{{calibrator.A_1[2, 0]:.6f}, {calibrator.A_1[2, 1]:.6f}, {calibrator.A_1[2, 2]:.6f}}}')
-        # apply params to RAW DATA! 
         raw_data = data.to_numpy()
+        print('\n ----Statistics for raw data ---- \n')
+        stats = collect_data_stats(raw_data)
+        norm = stats["mean_norm"] #np.max(np.abs(raw_data))
+        print(f"\n Norm = max value in data = {norm}\n")
+        if norm is None:
+            norm = 1000
+        if calibrator is None:
+            calibrator = MagnetometerCalibrator(norm)
+            # find calib params
+            calibrator.calibrate(raw_data) 
+            print("\nCalibration completed!")
+            print("Hard iron bias (microTesla) for (X, Y, Z):")
+            print(f"{{ {np.real(calibrator.b[0,0]):.6f}, {np.real(calibrator.b[1,0]):.6f}, {np.real(calibrator.b[2,0]):.6f} }}")
+            print("\nSoft iron transformation matrix:")
+            print(f'{{{calibrator.A_1[0, 0]:.6f}, {calibrator.A_1[0, 1]:.6f}, {calibrator.A_1[0, 2]:.6f}}},')
+            print(f'{{{calibrator.A_1[1, 0]:.6f}, {calibrator.A_1[1, 1]:.6f}, {calibrator.A_1[1, 2]:.6f}}},')
+            print(f'{{{calibrator.A_1[2, 0]:.6f}, {calibrator.A_1[2, 1]:.6f}, {calibrator.A_1[2, 2]:.6f}}}')
         corrected_data = calibrator.apply_calibration(raw_data)
         # cut complex part for convenience (error-free) of plotting
         corrected_data = np.real(corrected_data) 
+        print('\n ----Statistics for corrected data ---- \n')
+        collect_data_stats(corrected_data)
         
         # if save_params:
         #     calibrator.save_calibration(filename)
         # print("Corrected data size: ", corrected_data.shape)
         # print(f"\nFirst 5 calibrated values of {sensor}:")
         # print(corrected_data[:5, :])
-    return corrected_data
+    return corrected_data, calibrator
 
 
 def show_sensor_plots(sensor: Sensor, time: np.ndarray, sensor_raw_data: np.ndarray, calibrated_sensors: dict,
@@ -217,7 +215,7 @@ def show_sensor_plots(sensor: Sensor, time: np.ndarray, sensor_raw_data: np.ndar
             plot_sensor_measurements(time, sensor_raw_data, title, unit) 
             plot_sensor_measurements(time, calibrated_sensors[sensor], title, label = 'calib', unit = unit)
         else:
-            # merge_plot_3d(raw_data[:,1:], calibrated_data) #except time
+            merge_plot_3d(sensor_raw_data, calibrated_sensors[sensor]) #except time
             plot_sensor_merged_measurements(time, sensor_raw_data, calibrated_sensors[sensor], title, unit)
     else:
         print("\nPlot only raw measurements")
@@ -234,24 +232,27 @@ def main():
                         help='Choose file to be processed in log_data folder!')
     parser.add_argument('-ps','--plot-sensor', dest='plot_sensor', choices=['accel', 'mag', 'gyro', 'all'], default='all',
                             help='For which sensor measurements plot should be build (default: all)')
-    parser.add_argument('--apply', type=str, nargs='?', const='default',
-                    help='Apply existing calibration from JSON file instead of calibrating. Optionally specify the JSON file path.')
+    parser.add_argument('--no-plot', dest='noplot', action='store_true', default=False,
+                                help="Don't plot anything (default: False)")
     sub_parser = parser.add_subparsers(dest='command', required=False, 
                                    help='Sub-commands (calibrate)')
     calib_parser = sub_parser.add_parser('calibrate', 
                                          help='Calibration command parser')
     calib_parser.add_argument('-s', '--sensor', choices=['accel', 'mag', 'gyro', 'all'], default='all',
                                   help='Choose sensor to calibrate or calibrate both (default)')
-    # calib_parser.add_argument('--sj', dest='save_json', action='store_true', default=False,
-    #                         help='Whetрer to save calibration params after calibration (default: False)')
-    calib_parser.add_argument('--save', dest='save', action='store_true', default=False,
+    calib_parser.add_argument('--apply', type=str, nargs='?', const='default',
+                    help='Apply existing calibration from JSON file instead of calibrating. Optionally specify the JSON file path.')
+    calib_parser.add_argument('--sj', dest='save_json', action='store_true', default=False,
+                            help='Whetрer to save calibration params after calibration (default: False)')
+    calib_parser.add_argument('--sm', dest='save_meas', action='store_true', default=False,
                                 help='Whetрer to save corrected measurements after calibration (default: False)')
-    calib_parser.add_argument('--no-merge_plot', dest='nomerge', action='store_true', default=False,
+    calib_parser.add_argument('--no-merge-plot', dest='nomerge', action='store_true', default=False,
                                       help='Whether to exclude calibrated data from the figure of raw data (default: no exlude.)')
     # calib_parser.add_argument('-p', '--plot', action='store_true', 
     #                           help='Whether to build plot after calibration (default: False)')
     
     args = parser.parse_args()
+    print(vars(args))
     
     # Choose file 
     filename = Path("log_data")/args.filename
@@ -264,58 +265,82 @@ def main():
                     header=0,
                     names=new_header)
     
-    df["time_s"] = df["time_ms"] / 1000
+    df["time_s"] = df["time_ms"] / 1000000
     df.drop(columns = "time_ms", inplace = True)
     
     print("\nFirst lines of raw data measurements file:\n", df.head(5))
-    print("\nData info:\n", df.describe())
+    # print("\nData info:\n", df.describe())
     
     # Converting df to numpy arr
     # raw_data = df.to_numpy()
-    time =  df["time_s"].to_numpy()
+    time =  df["time_s"].to_numpy(dtype=np.float32)
     acc_raw_data = df.loc[:, ["acc_x", "acc_y", "acc_z"]].to_numpy()
     gyro_raw_data = df.loc[:, ["gyro_x", "gyro_y", "gyro_z"]].to_numpy()
     mag_raw_data = df.loc[:, ["mag_x", "mag_y", "mag_z"]].to_numpy()
+    # show_data_stats(mag_raw_data)
 
-    # CALIBRATION
+    # CALIBRATION PROCEDURE
     calibrated_sensors = {}
-    # Execute plotting with calibrated data
+    calibrators = {}
     if args.command == 'calibrate':
-        # MY_LOCAL_FIELD_uT = 0.0521746 #norm coef for magnetometer (dependent on location) 
-        # CUSTOM_SCALER = 30 #???
-        MY_LOCAL_FIELD_uT = 20
+        # APPPLY ALRDY KNOWN CALIBRATION PARAMETERS (from folder calibration_par/)
+        # (only for magnetometer now used!)
         sensor = args.sensor
-        if sensor == 'accel':  
-            calibrated_sensors[Sensor.ACCEL] = get_calibrated(Sensor.ACCEL, df.loc[:, ["acc_x", "acc_y", "acc_z"]], norm = 1) 
-        elif sensor == 'mag':  
-            calibrated_sensors[Sensor.MAG] = get_calibrated(Sensor.MAG, df.loc[:, ["mag_x", "mag_y", "mag_z"]], norm = MY_LOCAL_FIELD_uT)
-        # elif sensor == 'gyro':
-            # for gyro still no calibration used
-            # plot_sensor_raw_measurements(time = raw_data[:, 0], data =  raw_data[:, 1:4])  
-        elif sensor == 'all':
-            calibrated_sensors[Sensor.ACCEL] = get_calibrated(Sensor.ACCEL, df.loc[:, ["acc_x", "acc_y", "acc_z"]], norm = 1) 
-            calibrated_sensors[Sensor.MAG] = get_calibrated(Sensor.MAG, df.loc[:, ["mag_x", "mag_y", "mag_z"]], norm = MY_LOCAL_FIELD_uT)
+        if args.apply is not None:
+            if sensor == 'mag': 
+                if args.apply == 'default':
+                    param_dir = Path('calibration_par')
+                    param_dir.mkdir(exist_ok=True)
+                    json_filename = Path(param_dir)/'imu_log_2026-09-07_14-19-08.json'
+                    calibrator = MagnetometerCalibrator()
+                    calibrator.load_calibration(json_filename)
+                    calibrated_sensors[Sensor.MAG], calibrators[Sensor.MAG] = get_calibrated(Sensor.MAG, df.loc[:, ["mag_x", "mag_y", "mag_z"]], calibrator=calibrator)
+            else:
+                raise ValueError('Applied calibation still used only for magnetometer')
         else:
-            raise ValueError("No such sensor! Should be accel, mag, gyro (default all)")
+            # MY_LOCAL_FIELD_uT = 0.0521746 #norm coef for magnetometer (dependent on location) 
+            sensor = args.sensor
+            if sensor == 'accel':  
+                calibrated_sensors[Sensor.ACCEL], calibrators[Sensor.ACCEL] = get_calibrated(Sensor.ACCEL, df.loc[:, ["acc_x", "acc_y", "acc_z"]], norm = 1) 
+            elif sensor == 'mag':  
+                calibrated_sensors[Sensor.MAG], calibrators[Sensor.MAG] = get_calibrated(Sensor.MAG, df.loc[:, ["mag_x", "mag_y", "mag_z"]])
+            # elif sensor == 'gyro':
+                # for gyro still no calibration used
+                # plot_sensor_raw_measurements(time = raw_data[:, 0], data =  raw_data[:, 1:4])  
+            elif sensor == 'all':
+                calibrated_sensors[Sensor.ACCEL], calibrators[Sensor.ACCEL] = get_calibrated(Sensor.ACCEL, df.loc[:, ["acc_x", "acc_y", "acc_z"]], norm = 1)
+                calibrated_sensors[Sensor.MAG], calibrators[Sensor.MAG] = get_calibrated(Sensor.MAG, df.loc[:, ["mag_x", "mag_y", "mag_z"]])
+            else:
+                raise ValueError("No such sensor! Should be accel, mag, gyro (default all)")
     
-    # SAVE CORRECTED MEAS
-    if 'save' in vars(args) and args.save:
-        new_df = df.loc[:,['time_s']]
-        if Sensor.ACCEL in calibrated_sensors:
-            new_df.loc[:,["acc_x", "acc_y", "acc_z"]] = calibrated_sensors[Sensor.ACCEL]
-        else:
-            new_df.loc[:,["acc_x", "acc_y", "acc_z"]] = df.loc[:,["acc_x", "acc_y", "acc_z"]]       
-        new_df.loc[:,["gyro_x", "gyro_y", "gyro_z"]] = df.loc[:,["gyro_x", "gyro_y", "gyro_z"]]
-        if Sensor.MAG in calibrated_sensors:
-            new_df.loc[:,["mag_x", "mag_y", "mag_z"]]= calibrated_sensors[Sensor.MAG]
-        else:
-            new_df.loc[:,["mag_x", "mag_y", "mag_z"]] = df.loc[:,["mag_x", "mag_y", "mag_z"]]
-        
-        new_name = filename.stem + '_corrected' + '.csv'
-        new_df.to_csv(path_or_buf=Path("log_data")/new_name, index = False, lineterminator ='\n')
-        
+        # SAVE CORRECTED MEAS
+        if args.save_meas:
+            new_df = df.loc[:,['time_s']]
+            if Sensor.ACCEL in calibrated_sensors:
+                new_df.loc[:,["acc_x", "acc_y", "acc_z"]] = calibrated_sensors[Sensor.ACCEL]
+            else:
+                new_df.loc[:,["acc_x", "acc_y", "acc_z"]] = df.loc[:,["acc_x", "acc_y", "acc_z"]]       
+            new_df.loc[:,["gyro_x", "gyro_y", "gyro_z"]] = df.loc[:,["gyro_x", "gyro_y", "gyro_z"]]
+            if Sensor.MAG in calibrated_sensors:
+                new_df.loc[:,["mag_x", "mag_y", "mag_z"]] = calibrated_sensors[Sensor.MAG]
+            else:
+                new_df.loc[:,["mag_x", "mag_y", "mag_z"]] = df.loc[:,["mag_x", "mag_y", "mag_z"]]
             
+            new_name = filename.stem + '_corrected' + '.csv'
+            new_df.to_csv(path_or_buf=Path("log_data")/new_name, index = False, lineterminator ='\n')
+        
+        # SAVE CALIBRATION PARAMTERS
+        if args.save_json:
+            param_dir = Path('calibration_par')
+            param_dir.mkdir(exist_ok=True)
+            base_name = Path(param_dir)/(args.filename)
+            calibration_file = Path(base_name).with_suffix('.json')
+            if Sensor.MAG in calibrators:
+                calibrators[Sensor.MAG].save_calibration(calibration_file)
+    
     # BUILDING PLOTS
+    if args.noplot:
+        return
     nomerge_flag = vars(args).get('nomerge', False) 
     merge_plots = not nomerge_flag
     if args.plot_sensor == "accel":
