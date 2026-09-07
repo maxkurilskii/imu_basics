@@ -22,5 +22,6 @@ void set_led(nucleo_led led){
 }
 
 void reset_led(nucleo_led led){
-    GPIOB->BSRR |= (1U << led);
+//    GPIOB->BSRR |= (1U << led);
+    GPIOB->BSRR |= (1U << (led + 16));
 }
