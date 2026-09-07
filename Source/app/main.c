@@ -9,7 +9,6 @@ uint32_t start_delay = 0;
 uint16_t tmp_rx_buffer = 0;
 uint8_t mag_device_id = 0;
 
-
 void SysTick_Handler(void){
 	msCounter++;
 }
@@ -25,12 +24,14 @@ void delay_ms(uint16_t millis){
 int main(void){
 	SysClockInit();
 	SysTickInit();
+    APP_Timer10_Init();
 	LEDs_Init();
     USART3_Init();
     SPI1_Init();
     uint8_t imu_resp = 0;
-    Imu20948_Init();
+    IMU20948_Init();
     Madgwick_Filter_Init();
+    delay_ms(3000);
     
     /*init imu calibration */
     if (EXECUTE_CALIB){
@@ -38,32 +39,46 @@ int main(void){
         //calibrate_accel(); not impl yet
         //calibrate_mag(); not impl yet    
     }
+
+    imu_sample_t imu_sample = {.accel = {0}, 
+                               .gyro = {0}, 
+                               .mag = {0}, 
+                               .time_us = 0};
     
-    
-    /* run imu and uart */
-    imu_timer_start();
-    usart3_timer_start();   
-    
-    //imu_scaled_meas_t imu_meas = {.s_accel = {0}, .s_gyro = {0}, .s_mag = {0}, .time_sec = 0};
+    uint32_t imu_time_us = 0;
+    uint8_t imu_sample_cnt = 0;
+                                
+    /* run timers  */
+    App_Timer_Start();
+    IMU_Timer_Start();
     
 	while(1){
-        if (cur_spi_state == SPI_READING){
-            //get_register_value(WHO_AM_I); 
-            //get_imu_scaled_meas(&imu_meas);
-            update_imu_meas(); //blocking!!!
-            //update_orientation( get_imu_measurement() );   
-            cur_spi_state = SPI_FREE;
-        }           
-        if (cur_usart3_state == USART3_READY){
-            if (cur_spi_state == SPI_FREE){
-                cur_usart3_state = USART3_TRANSMITING;
-                 transmit_imu_meas_usart3( get_imu_measurement() );
-                //transmit_imu_meas_usart3( &imu_meas );
-                //transmit_imu_orient_usart3( get_orientation() );
+        if (cur_spi_state == SPI_READY){
+            cur_spi_state = SPI_READING;
+            imu_time_us = ticks_to_us(App_GetTicks()); 
+            //update measurements
+            update_imu_measurements(); //blocking!!!
+            // save time + measurements in imu sample
+            imu_sample.time_us = imu_time_us;
+            imu_scaled_meas_t* meas = get_imu_measurement();
+            for(uint16_t i = 0; i < 3; i++){
+                imu_sample.accel[i] = meas->s_accel[i];
+                imu_sample.gyro[i] = meas->s_gyro[i];
+                imu_sample.mag[i] = meas->s_mag[i];
             }
+            imu_sample_cnt++;
+            //fuse measurements to update orientation
+            update_orientation(&imu_sample);   
+            cur_spi_state = SPI_FREE;
+        }
+        if (cur_usart3_state == USART3_FREE && 
+                    (imu_sample_cnt * TIM9_PERIOD_MS >= UART_TX_PERIOD_MS)){
+            imu_sample_cnt = 0;
+            //transmit_imu_sample_usart3( &imu_sample );
+            //update_orientation(&imu_sample); 
+            transmit_imu_orient_usart3( get_euler_angles() );  
         }
     }
 }
-
 
 

@@ -96,39 +96,26 @@
 /* ------------------------------------------------------------- */
 #define TIM9_PERIOD_MS          5
 #define EXECUTE_CALIB           1 //or 0
-#define GYRO_CALIB_MEAS_NUMBER  500
+#define GYRO_CALIB_MEAS_NUMBER  1000
 
 
 extern  uint8_t whoAmIValue;
 /* initialization */
 uint8_t test_imu_startup(void);
-void powerup_imu(void);
-void configure_gyro(void);
-void configure_accel(void);
-void configure_magnetometer(void);
-void TIM1_BRK_TIM9_IRQHandler(void);
-void Timer9_Init(void);
-void imu_timer_start(void);
-void imu_timer_stop(void);
-void Imu20948_Init(void);
-
+void IMU_Timer_Start(void);
+void IMU_Timer_Stop(void);
+void IMU20948_Init(void);
 
 /* collecting raw data meas */
 void get_register_value(uint8_t reg_addr);
 
-void update_imu_meas(void);
-void get_imu_raw_meas(imu_raw_meas_t* meas);
-void get_imu_scaled_meas(imu_scaled_meas_t* meas);
-//void get_raw_accel_gyro_meas(void);
-//void get_raw_magnet_meas(void);
-void swap_buffers();
-
-/* calibration of imu */ 
+/* calibration of imu */
 void calibrate_gyro(void);
-/* correction of raw meas */
-void get_corrected_imu_meas(imu_scaled_meas_t* meas);
+    
+/* execute read->convert->correct procedure of imu meas */
+void update_imu_measurements(void);
 
-/* getter of read buffer*/
+/* getter of scaled imu measurements from buffer */
 imu_scaled_meas_t* get_imu_measurement(void);
 
 #endif

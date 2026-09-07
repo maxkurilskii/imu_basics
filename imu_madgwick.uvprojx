@@ -424,6 +424,16 @@
               <FileType>5</FileType>
               <FilePath>.\Source\app\filter_proces.h</FilePath>
             </File>
+            <File>
+              <FileName>app_timer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\app_timer.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\app_timer.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
