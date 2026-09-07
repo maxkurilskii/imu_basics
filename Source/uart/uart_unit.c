@@ -4,17 +4,6 @@ volatile usart3_state_t cur_usart3_state;
 volatile uint8_t tx_buffer[100] = {0};
 
 
-void TIM1_UP_TIM10_IRQHandler(void){
-    
-    if(TIM10->SR & TIM_SR_UIF){
-        TIM10->SR &= ~TIM_SR_UIF;
-        if(cur_usart3_state == USART3_FREE){
-            cur_usart3_state = USART3_READY;
-        }
-    }
-
-}
-
 void DMA1_Stream3_IRQHandler(void){
     if (DMA1->LISR & DMA_LISR_TCIF3){
         dma_clear_flags();
@@ -32,33 +21,6 @@ void dma_clear_flags(void){
 }
 
     
-void Timer10_Init(void){
-    //Enable TIM10 clock from APB2 (108 Mhz)
-    RCC->APB2ENR |= RCC_APB2ENR_TIM10EN;
-    //Prescaler: 108 Mhz / 54000 = 2 kHz = Ftim_tick 
-    TIM10->PSC = 53999;
-    //AUto-reload: (UART_TX_PERIOD_MS / 1000) * Ftim_tick  = ARR
-    //in case of ovf: max period is 1 sec
-    uint16_t arr_val  = UART_TX_PERIOD_MS * 2 - 1;
-    if (arr_val > 65535) {
-        toggle_led(LED1);
-        arr_val = 1999; // 1000 ms * 2 -1
-    }
-    TIM10->ARR = arr_val;
-    
-    //Update Prescaler and ARR registers before start
-    TIM10->EGR |= TIM_EGR_UG;
-    TIM10->SR &= ~TIM_SR_UIF; //cleat flag!
-    
-    //Enable interrupts
-    TIM10->DIER |= TIM_DIER_UIE;
-    NVIC_EnableIRQ(TIM1_UP_TIM10_IRQn);
-    
-    
-    //DO NOT Start timer in INIT!
-    //TIM10->CR1 |= TIM_CR1_CEN;
-    
-}
 
 void USART3_Init(void){
     
@@ -100,24 +62,8 @@ void USART3_Init(void){
     //Word len = 8bit (M1=M2=0)+enable UART3+enable UART3 transmit and receive 
 	USART3->CR1 |= USART_CR1_UE | USART_CR1_TE;// | USART_CR1_RE;
 	USART3->CR3 |= USART_CR3_DMAT; //use dma for tx
-	
-    /* ------------- Timer 10 for USART3 init -------------- */
-    Timer10_Init();
- 
-}
-
-
-
-
-void usart3_timer_start(void){
+    
     cur_usart3_state = USART3_FREE;
-    TIM10->CR1 |= TIM_CR1_CEN;
-}
-
-void usart3_timer_stop(void){
-    TIM10->CR1 &= ~TIM_CR1_CEN;
-    TIM10->SR &= ~TIM_SR_UIF; 
-    TIM10->CNT = 0;
 }
 
 
@@ -138,16 +84,16 @@ void transmit_byte_usart3_debug(uint8_t data){
     //while (!(USART3->ISR & USART_ISR_TC));
 }
 
-void transmit_imu_meas_usart3(imu_scaled_meas_t* imu_m){
+void transmit_imu_sample_usart3(imu_sample_t* imu_m){
     
         DMA1_Stream3->CR &= ~DMA_SxCR_EN;
         dma_clear_flags();
         //start(1) + cmd(1) + len(1) + data[40] + crc(2)
         DMA1_Stream3->NDTR = 45;
-		uint8_t *p_acc  = (uint8_t*)imu_m->s_accel;
-		uint8_t *p_gyro = (uint8_t*)imu_m->s_gyro;
-        uint8_t *p_mag  = (uint8_t*)imu_m->s_mag;
-        uint8_t *p_time = (uint8_t*)&(imu_m->time_ms);
+		uint8_t *p_acc  = (uint8_t*)imu_m->accel;
+		uint8_t *p_gyro = (uint8_t*)imu_m->gyro;
+        uint8_t *p_mag  = (uint8_t*)imu_m->mag;
+        uint8_t *p_time = (uint8_t*)&(imu_m->time_us);
 	
 		tx_buffer[0] = 0x23; //start byte
 		tx_buffer[1] = 0x42; //imu cmd code
@@ -180,7 +126,7 @@ void transmit_imu_orient_usart3(imu_orient_t* euler_meas){
     uint8_t *p_roll  = (uint8_t*)&euler_meas->roll;
     uint8_t *p_pitch = (uint8_t*)&euler_meas->pitch;
     uint8_t *p_yaw  = (uint8_t*)&euler_meas->yaw;
-    uint8_t *p_time = (uint8_t*)&euler_meas->time_ms;
+    uint8_t *p_time = (uint8_t*)&euler_meas->time_us;
 
     tx_buffer[0] = 0x23; //start byte
     tx_buffer[1] = 0x42; //imu cmd code

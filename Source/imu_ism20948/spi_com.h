@@ -10,6 +10,7 @@
 
 typedef enum{
     SPI_FREE,
+    SPI_READY,
     SPI_WRITING,
     SPI_READING,
     SPI_DATA_READY
