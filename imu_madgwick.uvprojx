@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath>.\Source\imu_ism20948</IncludePath>
+              <IncludePath>.\Source\app;.\Source\uart;.\Source\imu_ism20948;.\Source\Fusion</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -382,12 +382,93 @@
       </TargetOption>
       <Groups>
         <Group>
-          <GroupName>IMU_ISM20948</GroupName>
+          <GroupName>App</GroupName>
           <Files>
             <File>
               <FileName>common.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\common.h</FilePath>
+              <FilePath>.\Source\app\common.h</FilePath>
+            </File>
+            <File>
+              <FileName>led_unit.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\led_unit.c</FilePath>
+            </File>
+            <File>
+              <FileName>led_unit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\led_unit.h</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>system_clock_init.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\system_clock_init.c</FilePath>
+            </File>
+            <File>
+              <FileName>system_clock_init.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\system_clock_init.h</FilePath>
+            </File>
+            <File>
+              <FileName>filter_proces.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\filter_proces.c</FilePath>
+            </File>
+            <File>
+              <FileName>filter_proces.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\filter_proces.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_timer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\app\app_timer.h</FilePath>
+            </File>
+            <File>
+              <FileName>app_timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\app\app_timer.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Uart</GroupName>
+          <Files>
+            <File>
+              <FileName>crc16.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\uart\crc16.c</FilePath>
+            </File>
+            <File>
+              <FileName>crc16.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\uart\crc16.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart_unit.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\uart\uart_unit.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart_unit.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\uart\uart_unit.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>IMU_ISM20948</GroupName>
+          <Files>
+            <File>
+              <FileName>imu_data_types.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\imu_ism20948\imu_data_types.h</FilePath>
+>>>>>>> main
             </File>
             <File>
               <FileName>imu_ism20948.c</FileName>
@@ -400,12 +481,12 @@
               <FilePath>.\Source\imu_ism20948\imu_ism20948.h</FilePath>
             </File>
             <File>
-              <FileName>led_unit.c</FileName>
+              <FileName>spi_com.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\led_unit.c</FilePath>
+              <FilePath>.\Source\imu_ism20948\spi_com.c</FilePath>
             </File>
             <File>
-              <FileName>led_unit.h</FileName>
+              <FileName>spi_com.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Source\imu_ism20948\led_unit.h</FilePath>
             </File>
@@ -443,6 +524,71 @@
               <FileName>uart_unit.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Source\imu_ism20948\uart_unit.h</FilePath>
+            </File>
+            <File>
+              <FileName>calibration_params.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\imu_ism20948\calibration_params.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Fusion</GroupName>
+          <Files>
+            <File>
+              <FileName>Fusion.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\Fusion.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionAhrs.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\Fusion\FusionAhrs.c</FilePath>
+            </File>
+            <File>
+              <FileName>FusionAhrs.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionAhrs.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionBias.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\Fusion\FusionBias.c</FilePath>
+            </File>
+            <File>
+              <FileName>FusionBias.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionBias.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionCompass.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Source\Fusion\FusionCompass.c</FilePath>
+            </File>
+            <File>
+              <FileName>FusionCompass.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionCompass.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionConvention.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionConvention.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionMath.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionMath.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionModel.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionModel.h</FilePath>
+            </File>
+            <File>
+              <FileName>FusionRemap.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\Fusion\FusionRemap.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -491,5 +637,14 @@
       </file>
     </files>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>imu_madgwick</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>

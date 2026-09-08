@@ -9,10 +9,11 @@
 #define SPI1_CS_HIGH    GPIOA->BSRR = GPIO_BSRR_BS4
 
 typedef enum{
-    FREE,
-    WRITING,
-    READING,
-    DATA_READY
+    SPI_FREE,
+    SPI_READY,
+    SPI_WRITING,
+    SPI_READING,
+    SPI_DATA_READY
 } spi_state_t;
 
 

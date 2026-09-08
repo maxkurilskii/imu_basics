@@ -93,8 +93,11 @@
 #define MAG_HXL_ADD             0x11 //low byte ad for X axis
 
 
-/* */
-#define TIM9_PERIOD_MS          20
+
+/* ------------------------------------------------------------- */
+#define TIM9_PERIOD_MS          5
+#define EXECUTE_CALIB           1 //or 0
+#define GYRO_CALIB_MEAS_NUMBER  1000
 
 extern imu_data_t imu_meas;
 extern  uint8_t whoAmIValue;
@@ -102,15 +105,22 @@ extern  uint8_t whoAmIValue;
 /* imu startup configuration debug */
 void debug_imu_startup(void);
 
-void Imu20948_Init(void);
+/* initialization */
+uint8_t test_imu_startup(void);
+void IMU_Timer_Start(void);
+void IMU_Timer_Stop(void);
+void IMU20948_Init(void);
 
-void imu_timer_start(void);
-void imu_timer_stop(void);
+/* collecting raw data meas */
+void get_register_value(uint8_t reg_addr);
 
-void convert_who_am_i(uint8_t* spi_rx_buf, uint8_t data_len);
-void convert_imu_meas(uint8_t* spi_rx_buf, uint8_t data_len);
-void convert_accel_gyro_meas(uint8_t* spi_rx_buf, uint8_t data_len);
-void convert_magnet_meas(uint8_t* spi_rx_buf, uint8_t data_len);
+/* calibration of imu */
+void calibrate_gyro(void);
+    
+/* execute read->convert->correct procedure of imu meas */
+void update_imu_measurements(void);
+
+/* getter of scaled imu measurements from buffer */
+imu_scaled_meas_t* get_imu_measurement(void);
 
 #endif
-
