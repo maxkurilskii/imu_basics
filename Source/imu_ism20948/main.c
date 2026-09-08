@@ -1,7 +1,7 @@
 #include "common.h"
+#include "uart_unit.h"
 #include "spi_nonblocking.h"
 #include "imu_ism20948.h"
-//#include "uart_unit.h"
 
 volatile uint32_t msCounter = 0;
 uint32_t start_delay = 0;
@@ -28,35 +28,16 @@ int main(void){
 	SysTickInit();
 	LEDs_Init();
     USART3_Init();
-    // delay_ms(2000); //smtimes works
     SPI1_Init();
-    delay_ms(100); //smtimes works
-    uint8_t imu_err1 = 0, imu_err2 = 0;
-	spi_write(PWR_MGMT_1_ADD, PWR_MGMT_1_DEVICE_RESET);
-	delay_ms(100);
-	imu_err1 = test_imu_startup();
-	if (imu_err1){
-		toggle_led(LED3);
-		return 0;
-	}
-   
-	imu_err2 = test_imu_startup();
-	if (imu_err2){
-		toggle_led(LED2);
-		return 0;
-	}
-		
-	Imu20948_Init();
-   
-	register_spi_rx_callback(convert_imu_meas); 
-	imu_timer_start();
-	usart3_timer_start();
-
-	while(1){
-	//        toggle_led(LED2);
-	//        delay_ms(500);
-	}
-
+    
+    //startup delay for PC to begin monitoring STM UART output 
+    delay_ms(3000);
+    debug_imu_startup();
+    // last output on PC: ea 41 02 02 30 02 20 01 1b 02 00 02 
+    // 2 write attempts are typically required to configure the IMU registers
+    // using spi write (dma tx config + blocking with flag)
+    
+    return 0;
 }
 
 

@@ -38,7 +38,7 @@ void transmit_byte_usart3(uint8_t data){
 void transmit_byte_usart3_debug(uint8_t data){
     while (!(USART3->ISR & USART_ISR_TXE));
     USART3->TDR = data;
-    //while (!(USART3->ISR & USART_ISR_TC));
+    while (!(USART3->ISR & USART_ISR_TC));
 }
 
 void transmit_imu_meas_usart3(imu_data_t* imu_s){

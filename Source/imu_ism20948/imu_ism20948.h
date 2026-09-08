@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "spi_nonblocking.h"
+#include "uart_unit.h"
 
 //imu ism20948 registers addresses and bite field
 #define WHO_AM_I	                0x00
@@ -95,28 +96,14 @@
 /* */
 #define TIM9_PERIOD_MS          20
 
-//accel, gyro  and mag raw measurements for 3 axis 
-
-
-//typedef struct{
-//    float	acc_meas[3];
-//    float	gyro_meas[3];
-//    float   mag_meas[3];
-//    float   timestamp;
-//}imu_data_t;
-
 extern imu_data_t imu_meas;
 extern  uint8_t whoAmIValue;
 
-uint8_t test_imu_startup(void);
-void powerup_imu(void);
-void Imu20948_Init(void);
-void configure_gyro(void);
-void configure_accel(void);
-void configure_magnetometer(void);
+/* imu startup configuration debug */
+void debug_imu_startup(void);
 
-void TIM1_BRK_TIM9_IRQHandler(void);
-void Timer9_Init(void);
+void Imu20948_Init(void);
+
 void imu_timer_start(void);
 void imu_timer_stop(void);
 
@@ -124,7 +111,6 @@ void convert_who_am_i(uint8_t* spi_rx_buf, uint8_t data_len);
 void convert_imu_meas(uint8_t* spi_rx_buf, uint8_t data_len);
 void convert_accel_gyro_meas(uint8_t* spi_rx_buf, uint8_t data_len);
 void convert_magnet_meas(uint8_t* spi_rx_buf, uint8_t data_len);
-//void imu_write(uint8_t reg_add, uint8_t data);
 
 #endif
 

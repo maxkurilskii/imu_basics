@@ -14,7 +14,6 @@ typedef struct{
 
 #include "system_clock_init.h" 
 #include "led_unit.h"
-#include "uart_unit.h"
 
 void SysTick_Handler(void);
 void delay_ms(uint16_t milis);

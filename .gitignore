@@ -48,6 +48,7 @@
 # Debugger files
 # define exception below if needed
 *.ini
+*.dbgconf
 
 # Other files
 *.build_log.htm
@@ -66,6 +67,12 @@
 *.sct
 *.sfd
 *.sfr
+
+# Keil Event Recorder generated files
+*.scvd
+
+# Generated RTE files
+RTE/*/RTE_Components.h
 
 # Miscellaneous
 *.tra

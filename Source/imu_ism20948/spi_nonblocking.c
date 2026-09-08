@@ -2,17 +2,9 @@
 
 
 volatile spi_state_t cur_spi_state = FREE;
+
 uint8_t spi_tx_buffer[30] = {0};
 volatile uint8_t spi_rx_buffer[30] = {0};
-uint8_t spi_rx_data_cnt = 0;
-
-//pointer to function type variable
-spi_rx_callback_t spi_rx_callback = NULL;
-
-
-void register_spi_rx_callback(spi_rx_callback_t cb){
-    spi_rx_callback = cb;
-}
 
 volatile uint8_t spi_byte_read = 0;
 
@@ -25,16 +17,13 @@ void DMA2_Stream0_IRQHandler(void){
         SPI1_CS_HIGH; 
         dma_clear_flags();
         if (cur_spi_state == READING){    
-            if (spi_rx_callback != NULL)
-                spi_rx_callback(&spi_rx_buffer[1], spi_rx_data_cnt-1); //skip first junk byte
-            else spi_byte_read = spi_rx_buffer[1]; // only for one byte read operations
+           spi_byte_read = spi_rx_buffer[1]; // only for one byte read operations
         } 
         cur_spi_state = DATA_READY;
-        spi_rx_data_cnt = 0;
     }
 }
 
-void spi_write(uint8_t reg_addr, uint8_t tx_byte){
+void spi_write_blocking(uint8_t reg_addr, uint8_t tx_byte){
     /*
     Func accepts only ONE byte.
     Uses blocking operation to garantee end of writing to register 
@@ -52,13 +41,12 @@ void spi_write(uint8_t reg_addr, uint8_t tx_byte){
     /*config num of data that would be send and read*/
     DMA2_Stream3->NDTR = 2; //address byte + data bytes
     DMA2_Stream0->NDTR = 2; //junk bytes
-    spi_rx_data_cnt = 2;
     
     spi_tx_buffer[0] = reg_addr;
     spi_tx_buffer[1] = tx_byte;
 
-//    dma_status = DMA2->LISR;
-//    spi_status = SPI1->SR;
+    //dma_status = DMA2->LISR;
+    //spi_status = SPI1->SR;
     
     //SPI start comm sequence (alr should be SPI_EN = 1, SPI_RXDMA=SPI_TXDMA=1)
     SPI1_CS_LOW; //start spi com
@@ -71,7 +59,6 @@ void spi_write(uint8_t reg_addr, uint8_t tx_byte){
 }
 
 void spi_read_async(uint8_t reg_addr, uint8_t byte_quant){
-//    if (!(cur_spi_state == FREE || cur_spi_state == DATA_READY)) return;
     cur_spi_state = READING;
     
     //DMA2 Tx Stream3 and RX Stream0 must be disabled during reconfig
@@ -84,23 +71,19 @@ void spi_read_async(uint8_t reg_addr, uint8_t byte_quant){
     //config num of data that would be send and read (SPI DR should be read to clear RX_FIFO before next transfer)
     DMA2_Stream3->NDTR = byte_quant + 1; //address byte + data bytes
     DMA2_Stream0->NDTR = byte_quant + 1; //junk bytes
-    spi_rx_data_cnt = byte_quant + 1;
     
     spi_tx_buffer[0] = reg_addr | 0x80;
-//    dma_status = DMA2->LISR;
-//    spi_status = SPI1->SR;
+    //dma_status = DMA2->LISR;
+    //spi_status = SPI1->SR;
    
-   //SPI start comm sequence (alr should be SPI_EN = 1, SPI_RXDMA=SPI_TXDMA=1)
-    SPI1_CS_LOW; //start spi com
-    
+    //SPI start comm sequence (alr should be SPI_EN = 1, SPI_RXDMA=SPI_TXDMA=1)
+    SPI1_CS_LOW; 
     //little delay for slave 
     for(uint8_t i = 0; i < 3;i++) __NOP(); //~30 ns at 108 MHz
 
     DMA2_Stream0->CR |= DMA_SxCR_EN; //dma2 str0 is ready for rx transactions (listens to rx request)
     for(uint8_t i = 0; i < 3;i++) __NOP(); //~30 ns at 108 MHz
     DMA2_Stream3->CR |= DMA_SxCR_EN; //dma2 str3 is ready for tx transactions (listens to tx request)
-    //  while(cur_spi_state != DATA_READY) __NOP();
-
 }
 
 void SPI1_Init(void){
