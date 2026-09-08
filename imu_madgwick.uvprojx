@@ -468,7 +468,6 @@
               <FileName>imu_data_types.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\Source\imu_ism20948\imu_data_types.h</FilePath>
->>>>>>> main
             </File>
             <File>
               <FileName>imu_ism20948.c</FileName>
