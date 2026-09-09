@@ -480,54 +480,14 @@
               <FilePath>.\Source\imu_ism20948\imu_ism20948.h</FilePath>
             </File>
             <File>
-              <FileName>spi_com.c</FileName>
+              <FileName>spi_driver.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\spi_com.c</FilePath>
+              <FilePath>.\Source\imu_ism20948\spi_driver.c</FilePath>
             </File>
             <File>
-              <FileName>spi_com.h</FileName>
+              <FileName>spi_driver.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\led_unit.h</FilePath>
-            </File>
-            <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>spi_nonblocking.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\spi_nonblocking.c</FilePath>
-            </File>
-            <File>
-              <FileName>spi_nonblocking.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\spi_nonblocking.h</FilePath>
-            </File>
-            <File>
-              <FileName>system_clock_init.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\system_clock_init.c</FilePath>
-            </File>
-            <File>
-              <FileName>system_clock_init.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\system_clock_init.h</FilePath>
-            </File>
-            <File>
-              <FileName>uart_unit.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\imu_ism20948\uart_unit.c</FilePath>
-            </File>
-            <File>
-              <FileName>uart_unit.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\uart_unit.h</FilePath>
-            </File>
-            <File>
-              <FileName>calibration_params.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\imu_ism20948\calibration_params.h</FilePath>
+              <FilePath>.\Source\imu_ism20948\spi_driver.h</FilePath>
             </File>
           </Files>
         </Group>

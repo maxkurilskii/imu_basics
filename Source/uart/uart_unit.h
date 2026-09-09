@@ -6,6 +6,9 @@
 #include "filter_proces.h"
 #include "crc16.h"
 
+
+#define UART_TX_PERIOD_MS 20
+
 typedef struct{
 	uint8_t start_byte;
 	uint8_t cmd;

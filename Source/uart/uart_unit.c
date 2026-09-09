@@ -1,13 +1,14 @@
 #include "uart_unit.h"
 
 volatile usart3_state_t cur_usart3_state;
-volatile uint8_t tx_buffer[100] = {0};
+uint8_t tx_buffer[100] = {0};
 
 
 void DMA1_Stream3_IRQHandler(void){
     if (DMA1->LISR & DMA_LISR_TCIF3){
-        dma_clear_flags();
         DMA1_Stream3->CR &= ~DMA_SxCR_EN;
+        while(DMA1_Stream3->CR & DMA_SxCR_EN);
+        dma_clear_flags();
         cur_usart3_state = USART3_FREE;
     }
 }
@@ -37,7 +38,7 @@ void USART3_Init(void){
     DMA1_Stream3->CR |= DMA_SxCR_MINC | DMA_SxCR_TCIE | (1U << DMA_SxCR_DIR_Pos);
     NVIC_EnableIRQ(DMA1_Stream3_IRQn);
     
-    DMA1_Stream3->PAR = (uint32_t)&USART3->TDR;
+    DMA1_Stream3->PAR = (uint32_t)(volatile uint8_t*)&(USART3->TDR);
     DMA1_Stream3->M0AR = (uint32_t)tx_buffer;
 	/* ------------- USART3 initialization ---------------- */
 	
@@ -70,18 +71,20 @@ void USART3_Init(void){
 void transmit_byte_usart3(uint8_t data){
     cur_usart3_state = USART3_TRANSMITING;
     DMA1_Stream3->CR &= ~DMA_SxCR_EN;
+    while(DMA1_Stream3->CR & DMA_SxCR_EN);
     dma_clear_flags();
     DMA1_Stream3->NDTR = 1;
     tx_buffer[0] = data;
+    for(uint8_t i = 0; i < 20; i++) __NOP(); // ~180 ns
     //Start transmitting
-    DMA1_Stream3->CR |= DMA_SxCR_EN;
-    
+    DMA1_Stream3->CR |= DMA_SxCR_EN;   
 }
 
 void transmit_byte_usart3_debug(uint8_t data){
+    //blocking function
     while (!(USART3->ISR & USART_ISR_TXE));
     USART3->TDR = data;
-    //while (!(USART3->ISR & USART_ISR_TC));
+    while (!(USART3->ISR & USART_ISR_TC));
 }
 
 void transmit_imu_sample_usart3(imu_sample_t* imu_m){
@@ -113,6 +116,8 @@ void transmit_imu_sample_usart3(imu_sample_t* imu_m){
         //save in big endian
         tx_buffer[43] = (uint8_t)((crc16 >> 8) & 0xFF) ; //high
         tx_buffer[44] = (uint8_t)(crc16 & 0xFF); //low 
+        
+        for(uint8_t i = 0; i < 100; i++) __NOP(); // ~900 ns
 
         //Start transmitting
         DMA1_Stream3->CR |= DMA_SxCR_EN;
@@ -145,7 +150,9 @@ void transmit_imu_orient_usart3(imu_orient_t* euler_meas){
     //save in big endian
     tx_buffer[19] = (uint8_t)((crc16 >> 8) & 0xFF) ; //high
     tx_buffer[20] = (uint8_t)(crc16 & 0xFF); //low 
-
+    
+    for(uint8_t i = 0; i < 100; i++) __NOP(); // ~900 ns
+    
     //Start transmitting
     DMA1_Stream3->CR |= DMA_SxCR_EN;
 }
