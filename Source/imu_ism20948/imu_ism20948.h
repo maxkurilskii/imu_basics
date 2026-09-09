@@ -2,7 +2,7 @@
 #define IMU_ISM_20948_H
 
 #include "common.h"
-#include "spi_nonblocking.h"
+#include "spi_driver.h"
 #include "uart_unit.h"
 
 //imu ism20948 registers addresses and bite field
@@ -99,28 +99,26 @@
 #define EXECUTE_CALIB           1 //or 0
 #define GYRO_CALIB_MEAS_NUMBER  1000
 
-extern imu_data_t imu_meas;
 extern  uint8_t whoAmIValue;
-
-/* imu startup configuration debug */
-void debug_imu_startup(void);
 
 /* initialization */
 uint8_t test_imu_startup(void);
 void IMU_Timer_Start(void);
 void IMU_Timer_Stop(void);
 void IMU20948_Init(void);
-
-/* collecting raw data meas */
-void get_register_value(uint8_t reg_addr);
-
-/* calibration of imu */
 void calibrate_gyro(void);
-    
-/* execute read->convert->correct procedure of imu meas */
-void update_imu_measurements(void);
 
-/* getter of scaled imu measurements from buffer */
-imu_scaled_meas_t* get_imu_measurement(void);
+/* getter to read ism20948 register value*/
+uint8_t get_register_value(uint8_t reg_addr);
+    
+/* read measurements from imu using dma */
+void start_reading_imu_measurement(void);
+
+/* getters of scaled imu measurements from spi buffer */
+imu_scaled_meas_t* get_imu_corrected_measurement(void); 
+imu_scaled_meas_t* get_imu_scaled_measurement(void);
+
+/* get data from spi buffer in imu_raw_data type*/
+imu_raw_meas_t* get_imu_raw_measurement(void);
 
 #endif
