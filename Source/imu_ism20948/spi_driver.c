@@ -1,7 +1,6 @@
 #include "spi_driver.h"
 
 volatile spi_state_t cur_spi_state = SPI_FREE;
-volatile uint8_t spi_bytes_received = 0;
 
 uint8_t spi_tx_buffer[30] = {0};
 volatile uint8_t spi_rx_buffer[30] = {0};
@@ -15,9 +14,10 @@ static void DMA2_SPI1_Init(void);
 
 void DMA2_Stream0_IRQHandler(void){
     if (DMA2->LISR & DMA_LISR_TCIF0){
-        while (SPI1->SR & SPI_SR_BSY);
+        //while (SPI1->SR & SPI_SR_BSY);
+        DMA2->LIFCR = DMA_LIFCR_CTCIF0;
+        //dma_clear_flags();
         SPI1_CS_HIGH; 
-        dma_clear_flags();
         cur_spi_state = SPI_DATA_READY;
     }
 }
@@ -55,7 +55,7 @@ void SPI1_Init_All(void){
     SPI1->CR1 |= SPI_CR1_SSM | SPI_CR1_SSI | SPI_CR1_MSTR;
 
     // Clock prescaler: 108 Mhz (APB2) / 32  (0b100) =  3.375 MHz
-    SPI1->CR1 |= (4U << SPI_CR1_BR_Pos);
+    SPI1->CR1 |= (4U << SPI_CR1_BR_Pos); 
     //SPI1->CR1 |= (7U << SPI_CR1_BR_Pos); //~421 kHz
     
     // Data size (DS) = 8 bit (def), thres of SPI_RX_FIFO to 8 bit
@@ -76,7 +76,6 @@ void spi_write_async(uint8_t reg_addr, uint8_t tx_byte){
     Blocks at the end with CPU polling to wait for transfer completion.
     */
     cur_spi_state = SPI_WRITING;
-   
     //DMA2 Tx Stream3 and RX Stream0 must be disabled during reconfig
     DMA2_Stream3->CR &= ~DMA_SxCR_EN;
     while(DMA2_Stream3->CR & DMA_SxCR_EN);
@@ -90,13 +89,14 @@ void spi_write_async(uint8_t reg_addr, uint8_t tx_byte){
     
     spi_tx_buffer[0] = reg_addr;
     spi_tx_buffer[1] = tx_byte;
-
+    __DSB(); 
+    
     //SPI start comm sequence (alr should be SPI_EN = 1, SPI_RXDMA=SPI_TXDMA=1)
     SPI1_CS_LOW; //start spi com
     //small delay to ensure registers are set and IMU is ready
     for(uint8_t i = 0; i < DMA_DELAY; i++) __NOP(); 
+
     DMA2_Stream0->CR |= DMA_SxCR_EN; //dma2 str0 is ready for rx transactions (listens to rx request)
-    for(uint8_t i = 0; i < DMA_DELAY; i++) __NOP(); 
     DMA2_Stream3->CR |= DMA_SxCR_EN; //dma2 str3 is ready for tx transactions (listens to tx request)
     while(cur_spi_state != SPI_DATA_READY);    
 }
@@ -109,7 +109,7 @@ void spi_read_async(uint8_t reg_addr, uint8_t byte_number){
     Short CPU polling at the end exist to ensure data 
     is latched and IMU (slave) is ready for next transfer
     */
-    cur_spi_state =  SPI_READING;
+    cur_spi_state =  SPI_READING;    
     //DMA2 Tx Stream3 and RX Stream0 must be disabled during reconfig
     DMA2_Stream0->CR &= ~DMA_SxCR_EN;
     while(DMA2_Stream0->CR & DMA_SxCR_EN);
@@ -122,15 +122,12 @@ void spi_read_async(uint8_t reg_addr, uint8_t byte_number){
     DMA2_Stream0->NDTR = byte_number + 1; //junk bytes
     
     spi_tx_buffer[0] = reg_addr | 0x80;
-    //dma_status = DMA2->LISR;
-    //spi_status = SPI1->SR;
-   
-    //SPI start comm sequence (alr should be SPI_EN = 1, SPI_RXDMA=SPI_TXDMA=1)
+    __DSB();
+    
+     //SPI start comm sequence (alr should be SPI_EN = 1, SPI_RXDMA=SPI_TXDMA=1)
     SPI1_CS_LOW; 
-    //little delay for slave 
-    for(uint8_t i = 0; i < DMA_DELAY; i++) __NOP(); //~900 ns at 108 MHz
+    for(uint8_t i = 0; i < DMA_DELAY; i++) __NOP(); //little delay for slave 
     DMA2_Stream0->CR |= DMA_SxCR_EN; //dma2 str0 is ready for rx transactions (listens to rx request)
-    for(uint8_t i = 0; i < DMA_DELAY; i++) __NOP(); //~900 ns at 108 MHz
     DMA2_Stream3->CR |= DMA_SxCR_EN; //dma2 str3 is ready for tx transactions (listens to tx request)
 }
 
