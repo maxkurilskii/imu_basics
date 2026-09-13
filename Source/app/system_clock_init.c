@@ -2,10 +2,10 @@
 
 void SysTickInit(void){
 	//	SysTick_CTRL_CLKSOURCE_Msk is AHB(108 Mhz)
-	SysTick->LOAD = (108000UL << SysTick_LOAD_RELOAD_Pos); //Systick Period = 1/108 Mhz * 108000 = 1 ms
+	//SysTick->LOAD = (108000UL << SysTick_LOAD_RELOAD_Pos); //Systick Period = 1/108 Mhz * 108000 = 1 ms
 	//Enable interrupts + enable count down from reload number(from load register)
-	SysTick->CTRL =  SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk; 
-	
+	//SysTick->CTRL =  SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_TICKINT_Msk | SysTick_CTRL_ENABLE_Msk; 
+	SysTick_Config(10000);//~90 us period for 108 MHz
 }
 
 void SysClockInit(void){
