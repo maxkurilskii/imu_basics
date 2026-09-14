@@ -10,7 +10,8 @@
 
 void Madgwick_Filter_Init(void);
 void update_orientation(imu_sample_t* meas);
-imu_orient_t* get_euler_angles(uint32_t* meas_time);
+imu_euler_orient_t* get_euler_orient_sample(void);
+imu_quater_orient_t* get_quater_orient_sample(void);
 
 
 #endif

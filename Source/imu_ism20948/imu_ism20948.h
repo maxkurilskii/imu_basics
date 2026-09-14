@@ -2,8 +2,9 @@
 #define IMU_ISM_20948_H
 
 #include "common.h"
+#include "imu_data_types.h"
 #include "spi_driver.h"
-#include "uart_unit.h"
+#include "uart_driver.h"
 
 //imu ism20948 registers addresses and bite field
 #define WHO_AM_I	                0x00

@@ -171,7 +171,10 @@ void IMU20948_Init(void){
     configure_magnetometer();
     // Reset USER BANK reg to default bank (0)
     spi_write_async(REG_BANK_SEL_ADD, (0x00 << REG_BANK_SEL_USER_BANK_Pos));
-    transmit_byte_usart3(get_register_value(REG_BANK_SEL_ADD));
+    transmit_byte_usart3_debug(get_register_value(REG_BANK_SEL_ADD));
+    transmit_byte_usart3_debug(get_register_value(PWR_MGMT_1_ADD));
+    transmit_byte_usart3_debug(get_register_value(USER_CTRL_ADD));
+    transmit_byte_usart3_debug(get_register_value(WHO_AM_I));
     /* Set initial state */
     cur_spi_state = SPI_FREE;
     
@@ -267,12 +270,11 @@ static void powerup_imu(void){
     // Disable sleep mode + select clock PLL to run gyro in best performance
     spi_write_async(PWR_MGMT_1_ADD, (PWR_MGMT_1_SLEEP_OFF | PWR_MGMT_1_CLKSEL_PLL));
     delay_ms(1);
-    transmit_byte_usart3(get_register_value(PWR_MGMT_1_ADD)); //ожидаем 0x01 | 0x02 (if 0x00 - gyro won't work)
-    
     // Choose SPI mode only (immediately after restart) + enable i2c master
 	spi_write_async(USER_CTRL_ADD, 
                            (1U << USER_CTRL_I2C_IF_DIS_Pos) | 
                            (1U << USER_CTRL_I2C_MST_EN_Pos));                       
+    transmit_byte_usart3(get_register_value(PWR_MGMT_1_ADD)); //ожидаем 0x01 | 0x02 (if 0x00 - gyro won't work correctly)
     transmit_byte_usart3(get_register_value(USER_CTRL_ADD));// ожидаем 0x30
 }
 

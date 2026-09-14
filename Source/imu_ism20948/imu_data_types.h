@@ -1,9 +1,9 @@
 #ifndef IMU_DATA_TYPES_H
 #define IMU_DATA_TYPES_H
 
-#include "common.h"
+#include <stdint.h>
 
-//imu raw measurments 
+//imu raw measurements 
 typedef struct{
     int16_t    r_accel[3];
     int16_t    r_gyro[3];
@@ -24,7 +24,7 @@ typedef struct{
     float	    accel[3];
     float	    gyro[3];
     float       mag[3];
-    uint32_t    time_us;
+    uint64_t    time_us;
 }imu_sample_t;
 
 
@@ -38,14 +38,22 @@ typedef struct{
     float mag_mtx[3][3];  //alrdy inverted matrix!
 }imu_calib_params_t;
 
-//imu orientation measurements type union
+//imu orientation sample in Euler angles
 typedef struct{
     float       roll;
     float       pitch;
     float       yaw;   
-    uint32_t    time_us;  
-}imu_orient_t;
+    uint64_t    time_us;  
+}imu_euler_orient_t;
 
+//imu orientation sample in quaternions
+typedef struct{
+    float       w;
+    float       x;
+    float       y;  
+    float       z;   
+    uint64_t    time_us;  
+}imu_quater_orient_t;
 
 
 #endif
