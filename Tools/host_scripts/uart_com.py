@@ -1,5 +1,6 @@
 import argparse
 import serial
+import time
 import struct
 from enum import Enum
 from typing import Optional, Union, Tuple, List
@@ -115,21 +116,22 @@ class ProtocolSerialParser:
             self.reset_all()
             return msg
 
-
+class UartReadTimeout(serial.SerialException):
+    pass
           
 class UartCommunicator:
     START_BYTE  = 35 #b'\x23' or b'#'
-    MAX_TRY_NUMBER = 200
+    MAX_TRY_TIME_SEC = 4 
     
-    def __init__(self, port = 'COM4', baudrate =  115200, timeout = None) -> None:
+    def __init__(self, port = 'COM4', baudrate =  115200, timeout = 1.0) -> None:
         self.serial_handler = serial.Serial(port = port, 
                                         baudrate = baudrate, 
                                         timeout = timeout, 
                                         write_timeout = 0.1) # 0.1 or None? 
         
+        self._read_timeout = timeout
         self.msg_parser = ProtocolSerialParser()
         self.msg_encoder = ProtocolEncoder()
-        
         self._read_remaining = bytearray()
 
     def uart_write_package(self, msg_code: int, data: bytes):
@@ -150,10 +152,15 @@ class UartCommunicator:
             self._read_remaining = bytearray() 
         
         # parse new bytes from RX buffer
+        try_counter = 0
         while(self.serial_handler.is_open):
             one_byte = self.serial_handler.read(1)
             if not one_byte:
+                try_counter += 1
+                if try_counter * self._read_timeout >= self.MAX_TRY_TIME_SEC:
+                    raise UartReadTimeout('Max read timeout was reached')
                 continue
+            try_counter = 0
             frame_msg = self.msg_parser.process_byte(one_byte[0])
             if frame_msg is not None: 
                 return frame_msg
@@ -168,26 +175,33 @@ class UartCommunicator:
 
 
 def main():
-    header = ["time_ms",
+    header = ["Time_us",
                             "A_X", "A_Y", "A_Z", 
                             "G_X", "G_Y", "G_Z", 
                             "M_X", "M_Y", "M_Z"]
-    scaled_meas_logger = ImuLogger(header = header)
+    
+    header_formatted = [f'{header[0]:>22}'] + [f"{data:>9}" for data in header[1:]]
+    scaled_meas_logger = ImuLogger(header = header_formatted)
     try:
         host_com = UartCommunicator()
         if host_com.serial_handler.is_open:
-                print('Collecting and saving measurements in ./lod_data folder ...')
+                print(f'Collecting and saving measurements in {scaled_meas_logger.file_name} ')
                 print('Press CTRL + C to stop program')
         while(True):
-            msg = host_com.uart_read_package()
-            a_x, a_y, a_z,  \
-            g_x, g_y, g_z,  \
-            m_x, m_y, m_z,  \
-            timestamp, _ = struct.unpack_from('<9f1I1H', msg, offset=3)
-            scaled_meas_logger.save_scaled_data(ReadImuScaledMeasResponce((a_x, a_y, a_z),
-                                                                            (g_x, g_y, g_z), 
-                                                                            (m_x, m_y, m_z),
-                                                                            timestamp))
+            try:
+                msg = host_com.uart_read_package()
+                a_x, a_y, a_z,  \
+                g_x, g_y, g_z,  \
+                m_x, m_y, m_z,  \
+                timestamp, _ = struct.unpack_from('<9f1Q1H', msg, offset=3)
+                scaled_meas_logger.save_scaled_data(ReadImuScaledMeasResponce((a_x, a_y, a_z),
+                                                                                (g_x, g_y, g_z), 
+                                                                                (m_x, m_y, m_z),
+                                                                                timestamp))
+            except UartReadTimeout as e:
+                print(e)
+                break
+            
     except KeyboardInterrupt:
         print("Program stopped")
     except serial.SerialException as e:
