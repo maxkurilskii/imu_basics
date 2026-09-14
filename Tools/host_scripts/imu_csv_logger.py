@@ -9,7 +9,7 @@ from base_dataclasses import *
 
 
 class ImuLogger:
-    def __init__(self, filename = None, log_dir = None, header = None):
+    def __init__(self, *,filename = None, log_dir = None, header = None):
         if filename is None or log_dir is None:
             self.file_name = self._generate_filename()
         else:
