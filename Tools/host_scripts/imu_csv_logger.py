@@ -20,7 +20,7 @@ class ImuLogger:
         self.data_buffer: list = []
     
     def save_scaled_data(self, data: ReadImuScaledMeasResponce) -> None:
-        record = [f"{data.timestamp:>12}", 
+        record = [f"{data.timestamp:>22}", 
                     *[f"{data:>9.3f}" for data in data.accel_meas],
                     *[f"{data:>9.3f}" for data in data.gyro_meas],
                     *[f"{data:>9.3f}" for data in data.mag_meas]]
@@ -32,8 +32,19 @@ class ImuLogger:
             
             
     def save_angle_data(self, data: ReadImuEulerResponce) -> None:
-        record = [f"{data.timestamp:>9}", f"{data.roll:>9.3f}",
+        record = [f"{data.timestamp:>22}", f"{data.roll:>9.3f}",
                     f"{data.pitch:>9.3f}",  f"{data.yaw:>9.3f}"]
+        self.data_buffer.append(record)
+        
+        if len(self.data_buffer) >= self.max_buf_size:
+            self.flush_buffer()
+    
+    def save_quaternions(self, data: QuaternionMsgResponce) -> None:
+        record = [f"{data.timestamp:>22}", 
+                  f"{data.w:>9.3f}",
+                    f"{data.x:>9.3f}",  
+                    f"{data.y:>9.3f}",
+                    f"{data.z:>9.3f}"]
         self.data_buffer.append(record)
         
         if len(self.data_buffer) >= self.max_buf_size:
@@ -55,8 +66,8 @@ class ImuLogger:
         with open(fname, mode = 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
             if header is not None:
-                header_formatted = [f"{data:>9}" for data in header]
-                writer.writerow(header_formatted)
+                #header_formatted = [f"{data:>9}" for data in header]
+                writer.writerow(header)
 
 
     

@@ -2,6 +2,16 @@ from enum import Enum
 from dataclasses import dataclass, field
 from typing import List, Union, Optional, Tuple
 
+
+@dataclass(frozen=True)
+class QuaternionMsgResponce:
+    w: float
+    x: float
+    y: float
+    z: float
+    timestamp: int
+
+
 @dataclass(frozen=True)
 class ReadImuEulerCommand:
     #start(1) + cmd(1) + len(1) + data(40) + crc(2)   
