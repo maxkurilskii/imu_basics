@@ -424,16 +424,6 @@
               <FileType>5</FileType>
               <FilePath>.\Source\app\filter_proces.h</FilePath>
             </File>
-            <File>
-              <FileName>app_timer.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\Source\app\app_timer.h</FilePath>
-            </File>
-            <File>
-              <FileName>app_timer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Source\app\app_timer.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -450,14 +440,19 @@
               <FilePath>.\Source\uart\crc16.h</FilePath>
             </File>
             <File>
-              <FileName>uart_unit.c</FileName>
+              <FileName>uart_driver.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\Source\uart\uart_unit.c</FilePath>
+              <FilePath>.\Source\uart\uart_driver.c</FilePath>
             </File>
             <File>
-              <FileName>uart_unit.h</FileName>
+              <FileName>uart_driver.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Source\uart\uart_unit.h</FilePath>
+              <FilePath>.\Source\uart\uart_driver.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart_protocol_types.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Source\uart\uart_protocol_types.h</FilePath>
             </File>
           </Files>
         </Group>
