@@ -265,7 +265,7 @@ def main():
                     header=0,
                     names=new_header)
     
-    df["time_s"] = df["time_ms"] / 1000000
+    df["time_s"] = df["time_us"] // 10**6
     df.drop(columns = "time_ms", inplace = True)
     
     print("\nFirst lines of raw data measurements file:\n", df.head(5))
