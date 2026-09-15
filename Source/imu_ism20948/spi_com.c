@@ -13,6 +13,10 @@ void transmit_byte_spi(uint8_t tx_byte){
 }
 
 void spi_write(uint8_t reg_add, uint8_t data){	
+    /*
+    Single-byte SPI write with fully CPU-bound blocking (polling)
+    to guarantee completion before the next transaction.
+    */
 	//Catch slave
 	SPI1_CS_LOW;
     for(uint8_t i = 0; i < 3; i++) __NOP(); //~30ns
@@ -30,6 +34,7 @@ void spi_write(uint8_t reg_add, uint8_t data){
 
 
 void spi_read(uint8_t reg_add, uint8_t* result_buf, uint8_t byte_quant){
+    /*Multi-byte SPI read with fully CPU-bound polling*/
     //Catch slave
 	SPI1_CS_LOW;
     for(uint8_t i = 0; i < 3; i++) __NOP(); //~30ns

@@ -107,7 +107,7 @@ void IMU_Timer_Stop(void);
 void IMU20948_Init(void);
 
 /* collecting raw data meas */
-void get_register_value(uint8_t reg_addr);
+uint8_t get_imu_register_value(uint8_t reg_addr);
 
 /* calibration of imu */
 void calibrate_gyro(void);

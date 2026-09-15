@@ -2,8 +2,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 #define IMU_WRITE_BUF       0
 #define IMU_READ_BUF        1
+
+struct timespec ts = {.tv_sec = 0, .tv_nsec = 0};
+
 
 typedef struct{
     float	acc_meas[3];

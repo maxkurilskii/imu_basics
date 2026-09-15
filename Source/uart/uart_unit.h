@@ -8,17 +8,6 @@
 
 #define UART_TX_PERIOD_MS	20
 
-
-typedef struct{
-	uint8_t start_byte;
-	uint8_t cmd;
-	uint8_t data_len;
-    uint8_t timestamp[2];
-	uint8_t accelerometer_data[12];
-	uint8_t gyroscope_data[12];
-    uint8_t crc[2];
-}imu_msg_t;
-
 typedef enum{
     USART3_FREE,
     USART3_READY,

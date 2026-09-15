@@ -113,7 +113,7 @@ void transmit_imu_sample_usart3(imu_sample_t* imu_m){
         //save in big endian
         tx_buffer[43] = (uint8_t)((crc16 >> 8) & 0xFF) ; //high
         tx_buffer[44] = (uint8_t)(crc16 & 0xFF); //low 
-
+        __DSB();
         //Start transmitting
         DMA1_Stream3->CR |= DMA_SxCR_EN;
 }
@@ -131,7 +131,7 @@ void transmit_imu_orient_usart3(imu_orient_t* euler_meas){
     tx_buffer[0] = 0x23; //start byte
     tx_buffer[1] = 0x42; //imu cmd code
     tx_buffer[2] = 0x10; //length of data = 16 
-    for(uint8_t i = 0; i < 12; i++){
+    for(uint8_t i = 0; i < 4; i++){
         tx_buffer[3+i]   = *(p_roll + i);
         tx_buffer[7+i]  = *(p_pitch + i);
         tx_buffer[11+i] = *(p_yaw + i);
@@ -145,7 +145,8 @@ void transmit_imu_orient_usart3(imu_orient_t* euler_meas){
     //save in big endian
     tx_buffer[19] = (uint8_t)((crc16 >> 8) & 0xFF) ; //high
     tx_buffer[20] = (uint8_t)(crc16 & 0xFF); //low 
-
+    
+    __DSB();
     //Start transmitting
     DMA1_Stream3->CR |= DMA_SxCR_EN;
 }

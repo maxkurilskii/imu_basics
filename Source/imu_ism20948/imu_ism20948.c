@@ -44,14 +44,12 @@ static imu_scaled_meas_t* correct_imu_scaled_measurement(imu_scaled_meas_t* meas
     
 
 static void powerup_imu(void){ 
-    uint8_t reg_value = 0;//var to verify written data 
 	//reset all registers to def state
     spi_write(PWR_MGMT_1_ADD, PWR_MGMT_1_DEVICE_RESET);
     delay_ms(100); //NECCESSARY TO WAIT pin timout read/write !!!
     
     spi_write(REG_BANK_SEL_ADD, (0x00 << REG_BANK_SEL_USER_BANK_Pos));     
-    spi_read(REG_BANK_SEL_ADD, &reg_value, 1);    // ожидаем 0x00
-    transmit_byte_usart3_debug(reg_value);
+    transmit_byte_usart3_debug(get_imu_register_value(REG_BANK_SEL_ADD));    // ожидаем 0x00
 
     //disable sleep mode + select clock PLL to run gyro in best performance
     spi_write(PWR_MGMT_1_ADD, (PWR_MGMT_1_SLEEP_OFF | PWR_MGMT_1_CLKSEL_PLL));
@@ -62,11 +60,8 @@ static void powerup_imu(void){
                            (1U << USER_CTRL_I2C_IF_DIS_Pos) | 
                            (1U << USER_CTRL_I2C_MST_EN_Pos));
                            
-    spi_read(PWR_MGMT_1_ADD, &reg_value, 1); //exp 0x01 | 0x02 (if 0x00 - gyro won't work)
-    transmit_byte_usart3_debug(reg_value);
-    
-    spi_read(USER_CTRL_ADD, &reg_value, 1); // exp 0x30
-    transmit_byte_usart3_debug(reg_value);
+    transmit_byte_usart3_debug(get_imu_register_value(PWR_MGMT_1_ADD)); //exp 0x01 | 0x02 (if 0x00 - gyro won't work)
+    transmit_byte_usart3_debug(get_imu_register_value(USER_CTRL_ADD)); // exp 0x30
 }
 
 
@@ -243,8 +238,13 @@ void IMU20948_Init(void){
     configure_gyro();
     configure_accel();
     configure_magnetometer();
+    
     //reset USER BANK reg to default bank (0)
     spi_write(REG_BANK_SEL_ADD, (0x00 << REG_BANK_SEL_USER_BANK_Pos));
+    transmit_byte_usart3_debug(get_imu_register_value(PWR_MGMT_1_ADD));
+    transmit_byte_usart3_debug(get_imu_register_value(USER_CTRL_ADD)); 
+    transmit_byte_usart3_debug(get_imu_register_value(WHO_AM_I));
+    
     /* INITIALIZE IMU TIMER9*/
     IMU_Timer_Init();
     cur_spi_state = SPI_FREE;
@@ -350,11 +350,11 @@ void IMU_Timer_Stop(void){
     TIM9->CNT = 0;
 }
 
-void get_register_value(uint8_t reg_addr){
+uint8_t get_imu_register_value(uint8_t reg_addr){
     uint8_t imu_resp = 0;
     spi_read(reg_addr, &imu_resp, 1);
     /*Decode 1 BYTE(expected)*/
-    whoAmIValue = imu_resp;
+    return imu_resp;
 }
 
 /* calibration of imu */ 
